@@ -1,80 +1,211 @@
-.App {
-  text-align: center;
+.app {
+  display: flex;
+  height: 100vh;
   font-family: Arial, sans-serif;
 }
 
-.App-header {
-  background-color: #282c34;
-  padding: 20px;
-  color: white;
+.sidebar {
+  width: 250px;
+  background: #f8f9fa;
+  padding: 15px;
+  border-right: 1px solid #ddd;
 }
 
-.App-header h1 {
+.sidebar h2 {
   margin: 0;
-  font-size: 1.8rem;
+  color: #333;
 }
 
-.App-main {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
+.date-picker {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+  align-items: center;
 }
 
-.calendar-container {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+.timeline {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  background: #fff;
+  padding: 10px;
+}
+
+.time-slot {
+  height: calc(100% / 24);
+  border-bottom: 1px solid #eee;
   position: relative;
 }
 
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+.time-label {
+  position: absolute;
+  left: 0;
+  top: -10px;
+  font-size: 12px;
+  color: #666;
 }
 
-.calendar-header button {
-  background-color: #f0f0f0;
+.now-line {
+  position: absolute;
+  left: 60px;
+  right: 0;
+  height: 2px;
+  background: red;
+  z-index: 2;
+}
+
+.appointment-block {
+  position: absolute;
+  left: 80px;
+  right: 20px;
+  border-radius: 6px;
+  padding: 5px;
+  font-size: 12px;
+  color: white;
+  overflow: hidden;
+}
+
+.appointment-block.completed {
+  background: #2196f3; /* Blue for completed */
+}
+
+.appointment-block.upcoming {
+  background: #4caf50; /* Green for upcoming */
+}
+
+.add-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #1976d2;
+  color: white;
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 1.5rem;
-  cursor: pointer;
+  width: 56px;
+  height: 56px;
+  font-size: 32px;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+  transition: background 0.3s;
 }
 
-.calendar-header button:hover {
-  background-color: #e0e0e0;
+.add-btn:hover {
+  background: #0d47a1;
 }
 
-.calendar-header h2 {
-  margin: 0;
-  font-size: 1.4rem;
+.appointment-list {
+  margin-top: 20px;
 }
 
-.add-appointment-button {
-  position: absolute;
+.appointment-item {
+  padding: 5px;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.appointment-item.completed {
+  background: #2196f3;
+  color: white;
+}
+
+.appointment-item.upcoming {
+  background: #4caf50;
+  color: white;
+}
+/* ... keep your previous styles ... */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+}
+.add-btn {
+  position: fixed;
   bottom: 20px;
   right: 20px;
+  background: #007bff;
+  color: white;
+  font-size: 24px;
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: #4caf50;
-  color: white;
-  font-size: 2rem;
   border: none;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: background 0.2s;
 }
 
-.add-appointment-button:hover {
-  background-color: #45a049;
+.add-btn:hover {
+  background: #0056b3;
 }
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+.date-nav button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.date-nav button:hover {
+  background: #0056b3;
+}
+
+.time-row {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+.time-row select {
+  padding: 6px;
+}
+
+.delete-btn {
+  background: crimson;
+  color: white;
+  margin-right: auto;
+}
+.delete-btn:hover {
+  background: darkred;
+}
+
+
+
