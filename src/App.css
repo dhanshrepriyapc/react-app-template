@@ -76,7 +76,7 @@
 }
 
 
-/* Now Line Indicator */
+
 .now-line {
   position: absolute;
   left: 0;
@@ -85,6 +85,21 @@
   background: red;
   z-index: 3;
 }
+
+/* Add the bulge at the left */
+.now-line::before {
+  content: '';
+  position: absolute;
+  left: -6px; /* slightly outside the line */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: red;
+  border-radius: 50%; /* makes it circular */
+  box-shadow: 0 0 4px rgba(255, 0, 0, 0.5);
+}
+
 
 /* Sidebar Styles */
 /* Sidebar Base */
