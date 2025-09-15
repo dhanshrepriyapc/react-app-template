@@ -108,7 +108,9 @@ function App() {
     fetchAppointments();
   };
 
- return (
+// In your App.js, wrap the Timeline and add button in a container
+
+return (
   <div className="app">
     <Sidebar
       appointments={appointments}
@@ -117,26 +119,26 @@ function App() {
       isSameDay={isSameDay}
       getStatus={getStatus}
     />
-    <Timeline
-      appointments={appointments}
-      isToday={isToday}
-      nowPercent={nowPercent}
-      isSameDay={isSameDay}
-      getStatus={getStatus}
-      setEditingAppointment={setEditingAppointment}
-      setShowModal={setShowModal}
-    />
-
-    <button
-      className="add-btn"
-      onClick={() => {
-        setEditingAppointment(null);
-        setShowModal(true);
-      }}
-    >
-      +
-    </button>
-
+    <div className="main-content">
+      <Timeline
+        appointments={appointments}
+        isToday={isToday}
+        nowPercent={nowPercent}
+        isSameDay={isSameDay}
+        getStatus={getStatus}
+        setEditingAppointment={setEditingAppointment}
+        setShowModal={setShowModal}
+      />
+      <button
+        className="add-btn"
+        onClick={() => {
+          setEditingAppointment(null);
+          setShowModal(true);
+        }}
+      >
+        +
+      </button>
+    </div>
     <Modal
       showModal={showModal}
       setShowModal={setShowModal}
@@ -144,13 +146,13 @@ function App() {
       handleAddOrEdit={handleAddOrEdit}
       handleDelete={handleDelete}
     />
-
-    <ErrorModal 
+    <ErrorModal
       message={errorMessage}
       onClose={() => setErrorMessage(null)}
     />
   </div>
 );
+
 }
 
 export default App;
