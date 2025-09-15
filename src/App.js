@@ -7,11 +7,15 @@ import ErrorModal from "./components/ErrorModal";
 
 function App() {
   const [appointments, setAppointments] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-  const [nowPercent, setNowPercent] = useState(0);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [nowPx, setNowPx] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  const SLOT_HEIGHT = 80; // Height of each 30-min slot (must match CSS)
 
   // Fetch all appointments
   const fetchAppointments = () => {
@@ -25,24 +29,34 @@ function App() {
     fetchAppointments();
   }, [selectedDate]);
 
-  // Update red "now" line
+  // Update red "now" line in pixels
   useEffect(() => {
     const updateNowLine = () => {
       const now = new Date();
       const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
-      setNowPercent((minutesSinceMidnight / (24 * 60)) * 100);
+      const topPx = (minutesSinceMidnight / 30) * SLOT_HEIGHT; // 30 min slot
+      setNowPx(topPx);
     };
+
     updateNowLine();
-    const interval = setInterval(updateNowLine, 60000);
+    const interval = setInterval(updateNowLine, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
   const isSameDay = (dateStr) =>
     new Date(dateStr).toDateString() === new Date(selectedDate).toDateString();
+
   const isToday = () =>
     new Date(selectedDate).toDateString() === new Date().toDateString();
+
   const getStatus = (start) =>
     new Date(start) < new Date() ? "completed" : "upcoming";
+
+  // Format selectedDate into "Sep 15, 2025"
+  const formatPrettyDate = (dateStr) => {
+    const options = { year: "numeric", month: "short", day: "numeric" };
+    return new Date(dateStr).toLocaleDateString(undefined, options);
+  };
 
   // Convert HH:mm + AM/PM → 24h HH:mm
   const to24Hour = (time, period) => {
@@ -53,106 +67,131 @@ function App() {
   };
 
   // Add or edit appointment
- const handleAddOrEdit = async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
+  const handleAddOrEdit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
 
-  const startTime = to24Hour(formData.get("start"), formData.get("startPeriod"));
-  const endTime = to24Hour(formData.get("end"), formData.get("endPeriod"));
+    const startTime = to24Hour(formData.get("start"), formData.get("startPeriod"));
+    const endTime = to24Hour(formData.get("end"), formData.get("endPeriod"));
 
-  const appointmentPayload = {
-    title: formData.get("name"),
-    startTime: `${selectedDate}T${startTime}:00`,
-    endTime: `${selectedDate}T${endTime}:00`,
-  };
+    const appointmentPayload = {
+      title: formData.get("name"),
+      startTime: `${selectedDate}T${startTime}:00`,
+      endTime: `${selectedDate}T${endTime}:00`,
+    };
 
-  try {
-    const response = editingAppointment 
-      ? await fetch(`http://localhost:5169/api/appointments/${editingAppointment.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...appointmentPayload, id: editingAppointment.id }),
-        })
-      : await fetch("http://localhost:5169/api/appointments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(appointmentPayload),
-        });
+    try {
+      const response = editingAppointment
+        ? await fetch(
+            `http://localhost:5169/api/appointments/${editingAppointment.id}`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...appointmentPayload,
+                id: editingAppointment.id,
+              }),
+            }
+          )
+        : await fetch("http://localhost:5169/api/appointments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(appointmentPayload),
+          });
 
-    if (response.status === 409) {
-      const error = await response.json();
+      if (response.status === 409) {
+        const error = await response.json();
+        setErrorMessage(error.message);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to save appointment");
+      }
+
+      setShowModal(false);
+      setEditingAppointment(null);
+      fetchAppointments();
+    } catch (error) {
       setErrorMessage(error.message);
-      return;
     }
-
-    if (!response.ok) {
-      throw new Error('Failed to save appointment');
-    }
-
-    setShowModal(false);
-    setEditingAppointment(null);
-    fetchAppointments();
-  } catch (error) {
-    setErrorMessage(error.message);
-  }
-};
+  };
 
   // Delete appointment
   const handleDelete = async () => {
     if (!editingAppointment) return;
-    await fetch(`http://localhost:5169/api/appointments/${editingAppointment.id}`, {
-      method: "DELETE",
-    });
+    await fetch(
+      `http://localhost:5169/api/appointments/${editingAppointment.id}`,
+      {
+        method: "DELETE",
+      }
+    );
     setShowModal(false);
     setEditingAppointment(null);
     fetchAppointments();
   };
 
-// In your App.js, wrap the Timeline and add button in a container
+  // Handle appointment click (open modal for editing)
+  const handleAppointmentClick = (appointment) => {
+    setEditingAppointment(appointment);
+    setShowModal(true);
+  };
 
-return (
-  <div className="app">
-    <Sidebar
-      appointments={appointments}
-      selectedDate={selectedDate}
-      setSelectedDate={setSelectedDate}
-      isSameDay={isSameDay}
-      getStatus={getStatus}
-    />
-    <div className="main-content">
-      <Timeline
+  // Render layout
+  return (
+    <div className="app">
+      <Sidebar
         appointments={appointments}
-        isToday={isToday}
-        nowPercent={nowPercent}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
         isSameDay={isSameDay}
         getStatus={getStatus}
-        setEditingAppointment={setEditingAppointment}
-        setShowModal={setShowModal}
       />
-      <button
-        className="add-btn"
-        onClick={() => {
-          setEditingAppointment(null);
-          setShowModal(true);
-        }}
-      >
-        +
-      </button>
-    </div>
-    <Modal
-      showModal={showModal}
-      setShowModal={setShowModal}
-      editingAppointment={editingAppointment}
-      handleAddOrEdit={handleAddOrEdit}
-      handleDelete={handleDelete}
-    />
-    <ErrorModal
-      message={errorMessage}
-      onClose={() => setErrorMessage(null)}
-    />
-  </div>
-);
 
+      <div className="main-content">
+        {/* Page Header */}
+        <div className="page-header">
+          <h2>{formatPrettyDate(selectedDate)}</h2>
+          <p className="subtitle">Schedule for the day</p>
+        </div>
+
+        {/* Timeline */}
+        <Timeline
+          appointments={appointments}
+          selectedDate={selectedDate}
+          isSameDay={isSameDay}
+          isToday={isToday}
+          onAppointmentClick={handleAppointmentClick}
+          nowPx={nowPx}
+          slotHeight={SLOT_HEIGHT}
+        />
+
+        {/* Add button */}
+        <button
+          className="add-btn"
+          onClick={() => {
+            setEditingAppointment(null);
+            setShowModal(true);
+          }}
+        >
+          +
+        </button>
+      </div>
+
+      {/* Modals */}
+      <Modal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        editingAppointment={editingAppointment}
+        handleAddOrEdit={handleAddOrEdit}
+        handleDelete={handleDelete}
+      />
+      <ErrorModal
+        message={errorMessage}
+        onClose={() => setErrorMessage(null)}
+      />
+    </div>
+  );
 }
 
 export default App;
