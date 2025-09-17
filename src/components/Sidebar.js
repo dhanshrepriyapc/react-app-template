@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DateNav from "./DateNav";
 
-function Sidebar({ appointments, selectedDate, setSelectedDate, isSameDay, getStatus }) {
+function Sidebar({ appointments, selectedDate, setSelectedDate, isSameDay, getStatus, currentView}) {
   const [isMobileOpen, setIsMobileOpen] = useState(false); // mobile overlay
   const [isCollapsed, setIsCollapsed] = useState(false);   // desktop collapse
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -57,7 +57,7 @@ function Sidebar({ appointments, selectedDate, setSelectedDate, isSameDay, getSt
             </div>
 
             <div className="sidebar-date">
-              <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+              <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} currentView={currentView}/>
             </div>
 
             <div className="appointment-list">

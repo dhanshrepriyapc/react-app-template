@@ -291,3 +291,8 @@ body[data-theme="dark"] .page-header {
     }
   }
 }
+/* Dark Theme */
+body[data-theme="dark"] .date-nav {
+  .date-label { color: #90caf9; }
+  button { background: #90caf9; color: #1e1e1e; &:hover { background: #64b5f6; } }
+}
