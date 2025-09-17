@@ -91,63 +91,6 @@ function ErrorModal({ message, onClose }) {
 }
 
 export default ErrorModal;
-// import React, { useState } from "react";
-
-// function Login({ onLogin }) {
-//   const [username, setUsername] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [error, setError] = useState("");
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-
-//     try {
-//       const response = await fetch("http://localhost:5169/api/users/login", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({ username, password }),
-//       });
-
-//       if (!response.ok) {
-//         const err = await response.json();
-//         setError(err.message || "Invalid username or password");
-//         return;
-//       }
-
-//       const user = await response.json();
-//       onLogin(user); // user = { id, username }
-//     } catch (err) {
-//       console.error(err);
-//       setError("Something went wrong. Try again.");
-//     }
-//   };
-
-//   return (
-//     <div className="login-container">
-//       <form className="login-form" onSubmit={handleSubmit}>
-//         <h2>Login</h2>
-//         {error && <p className="error">{error}</p>}
-//         <input
-//           type="text"
-//           placeholder="Username"
-//           value={username}
-//           onChange={(e) => setUsername(e.target.value)}
-//           required
-//         />
-//         <input
-//           type="password"
-//           placeholder="Password"
-//           value={password}
-//           onChange={(e) => setPassword(e.target.value)}
-//           required
-//         />
-//         <button type="submit">Login</button>
-//       </form>
-//     </div>
-//   );
-// }
-
-// export default Login;
 import React, { useState } from "react";
 
 function Login({ onLogin }) {
@@ -336,77 +279,6 @@ function Modal({ showModal, setShowModal, editingAppointment, handleAddOrEdit, h
 }
 
 export default Modal;
-// import React, { useState } from "react";
-// import DateNav from "./DateNav";
-
-// function Sidebar({
-//   appointments,
-//   selectedDate,
-//   setSelectedDate,
-//   isSameDay,
-//   getStatus,
-// }) {
-//   const [isOpen, setIsOpen] = useState(false);
-
-//   const toggleSidebar = () => setIsOpen(!isOpen);
-
-//   const upcomingAppointments = appointments.filter(
-//     (a) => isSameDay(a.startTime) && getStatus(a.startTime) === "upcoming"
-//   );
-
-//   return (
-//     <>
-//       {/* Hamburger Button (mobile only) */}
-//       <button className="hamburger" onClick={toggleSidebar}>
-//         â˜°
-//       </button>
-
-//       <aside className={`sidebar ${isOpen ? "open" : ""}`}>
-//         {/* Header */}
-//         <div className="sidebar-header">
-//           <div>
-//             <h2>ðŸ“… Appointments</h2>
-//             <p>Manage your schedule</p>
-//           </div>
-//           {/* Close button (mobile only) */}
-//           <button className="close-btn" onClick={toggleSidebar}>Ã—</button>
-//         </div>
-
-//         {/* Date navigation */}
-//         <div className="sidebar-date">
-//           <DateNav
-//             selectedDate={selectedDate}
-//             setSelectedDate={setSelectedDate}
-//           />
-//         </div>
-
-//         {/* Upcoming Appointments */}
-//         <div className="appointment-list">
-//           <h3>Recent & Upcoming</h3>
-//           {upcomingAppointments.length === 0 ? (
-//             <p className="empty-text">No upcoming appointments</p>
-//           ) : (
-//             upcomingAppointments.map((a) => (
-//               <div key={a.id} className="appointment-item upcoming">
-//                 <div className="appt-time">
-//                   {new Date(a.startTime).toLocaleTimeString([], {
-//                     hour: "2-digit",
-//                     minute: "2-digit",
-//                     hour12: true,
-//                   })}
-//                 </div>
-//                 <div className="appt-title">{a.title}</div>
-//                 <span className="appt-label">Upcoming</span>
-//               </div>
-//             ))
-//           )}
-//         </div>
-//       </aside>
-//     </>
-//   );
-// // }
-
-// export default Sidebar;
 import React, { useState, useEffect } from "react";
 import DateNav from "./DateNav";
 
@@ -505,93 +377,7 @@ function Sidebar({ appointments, selectedDate, setSelectedDate, isSameDay, getSt
 }
 
 export default Sidebar;
-// import React, { useEffect, useRef } from "react";
-// import AppointmentBlock from "./AppointmentBlock";
-
-// function Timeline({
-//   appointments,
-//   selectedDate,
-//   isSameDay,
-//   isToday,
-//   onAppointmentClick,
-//   slotHeight,
-// }) {
-//   const timelineRef = useRef(null);
-
-//   const renderSlots = () => {
-//     return Array.from({ length: 48 }, (_, i) => {
-//       const hour24 = Math.floor(i / 2);
-//       const minute = i % 2 === 0 ? "00" : "30";
-//       const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-//       const ampm = hour24 < 12 ? "AM" : "PM";
-//       const timeLabel = `${hour12}:${minute} ${ampm}`;
-
-//       return (
-//         <div key={i} className="time-slot" style={{ height: `${slotHeight}px` }}>
-//           <div className="time-label">{timeLabel}</div>
-//         </div>
-//       );
-//     });
-//   };
-
-//   const renderAppointments = () => {
-//     return appointments
-//       .filter((a) => isSameDay(a.startTime, selectedDate))
-//       .map((appointment) => (
-//         <AppointmentBlock
-//           key={appointment.id}
-//           appointment={appointment}
-//           onClick={() => onAppointmentClick(appointment)}
-//         />
-//       ));
-//   };
-
-//   // Scroll to next upcoming appointment
-//   useEffect(() => {
-//     const todayAppointments = appointments
-//       .filter((a) => isSameDay(a.startTime, selectedDate))
-//       .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-
-//     if (todayAppointments.length && timelineRef.current) {
-//       const now = new Date();
-
-//       // Find the first appointment starting after now
-//       let targetAppointment = todayAppointments.find(
-//         (a) => new Date(a.startTime) > now
-//       );
-
-//       // If all appointments are past, scroll to the last one
-//       if (!targetAppointment) {
-//         targetAppointment = todayAppointments[todayAppointments.length - 1];
-//       }
-
-//       const start = new Date(targetAppointment.startTime);
-//       const startMinutes = start.getHours() * 60 + start.getMinutes();
-//       const top = (startMinutes / 30) * slotHeight;
-
-//       timelineRef.current.scrollTop = top - 20; // scroll slightly above
-//     }
-//   }, [appointments, selectedDate, slotHeight, isSameDay]);
-
-//   return (
-//     <div className="timeline" ref={timelineRef}>
-//       <div className="slots-container">{renderSlots()}</div>
-//       <div className="appointments-container" style={{ height: `${48 * slotHeight}px` }}>
-//         {renderAppointments()}
-//         {isToday() && (
-//           <div
-//             className="now-line"
-//             style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) / 30 * slotHeight}px` }}
-//           />
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default Timeline;
-// src/components/Timeline.js
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import AppointmentBlock from "./AppointmentBlock";
 
 function Timeline({
@@ -606,6 +392,12 @@ function Timeline({
 }) {
   const timelineRef = useRef(null);
 
+  // Memoize today's appointments to avoid duplicate filtering
+  const todayAppointments = useMemo(
+    () => appointments.filter((a) => isSameDay(a.startTime, selectedDate)),
+    [appointments, selectedDate, isSameDay]
+  );
+
   const renderSlots = () => {
     return Array.from({ length: 48 }, (_, i) => {
       const hour24 = Math.floor(i / 2);
@@ -615,7 +407,11 @@ function Timeline({
       const timeLabel = `${hour12}:${minute} ${ampm}`;
 
       return (
-        <div key={i} className="time-slot" style={{ height: `${slotHeight}px` }}>
+        <div
+          key={i}
+          className="time-slot"
+          style={{ height: `${slotHeight}px` }}
+        >
           <div className="time-label">{timeLabel}</div>
         </div>
       );
@@ -623,34 +419,26 @@ function Timeline({
   };
 
   const renderAppointments = () => {
-    return appointments
-      .filter((a) => isSameDay(a.startTime, selectedDate))
-      .map((appointment) => (
-        <AppointmentBlock
-          key={appointment.id}
-          appointment={appointment}
-          onClick={() => onAppointmentClick(appointment)}
-          slotHeight={slotHeight}
-          getStatus={getStatus}
-        />
-      ));
+    return todayAppointments.map((appointment) => (
+      <AppointmentBlock
+        key={appointment.id}
+        appointment={appointment}
+        onClick={() => onAppointmentClick(appointment)}
+        slotHeight={slotHeight}
+        getStatus={getStatus}
+      />
+    ));
   };
 
   // Scroll to next upcoming appointment
   useEffect(() => {
-    const todayAppointments = appointments
-      .filter((a) => isSameDay(a.startTime, selectedDate))
-      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-
     if (todayAppointments.length && timelineRef.current) {
       const now = new Date();
 
-      // Find the first appointment starting after now
       let targetAppointment = todayAppointments.find(
         (a) => new Date(a.startTime) > now
       );
 
-      // If all appointments are past, scroll to the last one
       if (!targetAppointment) {
         targetAppointment = todayAppointments[todayAppointments.length - 1];
       }
@@ -660,24 +448,29 @@ function Timeline({
         const startMinutes = start.getHours() * 60 + start.getMinutes();
         const top = (startMinutes / 30) * slotHeight;
         timelineRef.current.scrollTop = Math.max(0, top - 20);
+      } else {
+        // Scroll to "now" if no appointments today
+        const nowTop = ((now.getHours() * 60 + now.getMinutes()) / 30) * slotHeight;
+        timelineRef.current.scrollTop = Math.max(0, nowTop - 20);
       }
     }
-  }, [appointments, selectedDate, slotHeight, isSameDay]);
+  }, [todayAppointments, slotHeight]);
 
-  return (
-    <div className="timeline" ref={timelineRef}>
+ return (
+  <div className="timeline">
+    <div className="timeline-grid" ref={timelineRef}>
       <div className="slots-container">{renderSlots()}</div>
-      <div className="appointments-container" style={{ height: `${48 * slotHeight}px` }}>
+      <div className="appointments-container">
         {renderAppointments()}
         {isToday() && (
-          <div
-            className="now-line"
-            style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) / 30 * slotHeight}px` }}
-          />
+          <div className="now-line" style={{ top: `${nowPx}px` }} />
         )}
       </div>
     </div>
-  );
+  </div>
+);
+
+
 }
 
 export default Timeline;
@@ -698,7 +491,6 @@ export default Timeline;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  overflow-y: auto; 
   height: 100vh;
 }
 
@@ -1154,21 +946,24 @@ export default Timeline;
 }
 .timeline {
   flex: 1;
+  min-height: 0;
   position: relative;
   overflow-y: auto;
   background: #fafafa;
+  height: calc(100vh - 100px); 
 
   .timeline-grid {
     position: relative;
     z-index: 1;
     padding-left: 80px;
+    height: calc(48 * 80px); /* 48 slots * slot height */
   }
 
   .slots-container {
+    width: 100%;
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
   }
 
   .time-slot {
@@ -1182,14 +977,15 @@ export default Timeline;
     position: absolute;
     left: 5px;
     top: 2px;
-    font-size: 10px;
+    font-size: 15px;
     color: #999;
   }
 
   .appointments-container {
     position: relative;
-    margin-left: 50px;
-    z-index: 2;
+    width: 100%;
+    top: 0;
+      
 
     .appointment-block {
       position: absolute;
@@ -1204,6 +1000,7 @@ export default Timeline;
       z-index: 2;
       transition: all 0.2s ease;
       cursor: pointer;
+     
 
       &:hover {
         transform: translateY(-2px);
@@ -1234,6 +1031,7 @@ export default Timeline;
       box-shadow: 0 0 4px rgba(255,0,0,0.5);
     }
   }
+  
 }
 import React, { useEffect, useState } from "react";
 import "./App.scss";

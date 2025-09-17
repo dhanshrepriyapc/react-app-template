@@ -26,6 +26,10 @@
   background: #fff;
   z-index: 5;
 
+  display: flex; /* enables flexbox */
+  justify-content: space-between; /* pushes children to opposite ends */
+  align-items: center; /* vertically centers items */
+
   h2 {
     margin: 0;
     font-size: 1.6rem;
@@ -38,4 +42,20 @@
     font-size: 1rem;
     color: #8c8989;
   }
+
+  .theme-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 50%;
+    transition: background 0.3s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+  }
 }
+
+

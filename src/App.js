@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"; 
+import { Moon, Sun } from "lucide-react";
 import "./App.scss";
 import Sidebar from "./components/Sidebar";
 import Timeline from "./components/Timeline";
@@ -19,6 +20,21 @@ function App() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const SLOT_HEIGHT = 80;
+  // theme state
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("theme") || "light";
+  });
+
+  // apply theme to <body>
+  useEffect(() => {
+    document.body.dataset.theme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
+
 
   // --- Fetch appointments for logged-in user ---
   const fetchAppointments = async () => {
@@ -39,8 +55,26 @@ function App() {
 
   // Trigger fetch on login or date change
   useEffect(() => {
-    if (loggedInUser) fetchAppointments();
-  }, [loggedInUser, selectedDate, fetchAppointments]);
+  if (!loggedInUser) return;
+  let cancelled = false;
+
+  const fetchForUser = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch appointments");
+      const data = await res.json();
+      if (!cancelled) setAppointments(data);
+    } catch (err) {
+      if (!cancelled) setErrorMessage(err.message);
+    }
+  };
+
+  fetchForUser();
+  return () => { cancelled = true; };
+}, [loggedInUser]);
+
 
   // --- Update "now" line position ---
   useEffect(() => {
@@ -78,6 +112,7 @@ function App() {
   };
 
   // --- Add or Edit appointment ---
+  
   const handleAddOrEdit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -167,7 +202,10 @@ function App() {
       <div className="main-content">
         <div className="page-header">
           <h2>{formatPrettyDate(selectedDate)}</h2>
-          <p className="subtitle">Schedule for the day</p>
+          <div className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+           {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+         </div>
+
         </div>
 
         <Timeline
