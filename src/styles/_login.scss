@@ -54,4 +54,21 @@
     color: red;
     font-size: 14px;
   }
+  .register-link {
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 1rem;
+  color:#0c6ccc; ;
+}
+
+.register-link a {
+  color: green;
+  text-decoration: none;
+  font-weight: bold;
+}
+ 
+.register-link a:hover {
+  text-decoration: underline;
+}
+
 }

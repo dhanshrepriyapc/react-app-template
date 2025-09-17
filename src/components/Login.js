@@ -48,6 +48,10 @@ function Login({ onLogin }) {
           required
         />
         <button type="submit">Login</button>
+        <p className="register-link">
+        Don't have an account? <a href="#">Register</a>
+        </p>
+
       </form>
     </div>
   );

@@ -8,9 +8,8 @@ function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) 
   const endMinutes = end.getHours() * 60 + end.getMinutes();
 
   const top = Math.floor((startMinutes / 30) * slotHeight);
-  const height = Math.max(24, Math.floor(((endMinutes - startMinutes) / 30) * slotHeight)); // minimum height
+  const height = Math.max(24, Math.floor(((endMinutes - startMinutes) / 30) * slotHeight));
 
-  // fallback getStatus if not provided
   const localGetStatus = (startTime, endTime) => {
     const now = new Date();
     const s = new Date(startTime);
@@ -22,8 +21,15 @@ function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) 
 
   const status = (getStatus || localGetStatus)(appointment.startTime, appointment.endTime);
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData("text/plain", appointment.id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
   return (
     <div
+      draggable
+      onDragStart={handleDragStart}
       className={`appointment-block ${status}`}
       style={{ top: `${top}px`, height: `${height}px` }}
       onClick={onClick}
@@ -33,17 +39,8 @@ function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) 
     >
       <strong>{appointment.title}</strong>
       <br />
-      {start.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })}{" "}
-      -{" "}
-      {end.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })}
+      {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })} -{" "}
+      {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })}
     </div>
   );
 }

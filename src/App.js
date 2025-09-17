@@ -204,6 +204,8 @@ function App() {
           }}
           nowPx={nowPx}
           slotHeight={SLOT_HEIGHT}
+          loggedInUser={loggedInUser}      
+          fetchAppointments={fetchAppointments}
         />
       );
     } else if (currentView === "week") {
