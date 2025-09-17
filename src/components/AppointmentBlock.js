@@ -1,29 +1,35 @@
-function AppointmentBlock({ appointment, onClick }) {
+import React from "react";
+
+function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) {
   const start = new Date(appointment.startTime);
   const end = new Date(appointment.endTime);
 
   const startMinutes = start.getHours() * 60 + start.getMinutes();
   const endMinutes = end.getHours() * 60 + end.getMinutes();
 
-  const slotHeight = 80; // Height of 30-min slot
   const top = Math.floor((startMinutes / 30) * slotHeight);
-  const height = Math.floor(((endMinutes - startMinutes) / 30) * slotHeight);
+  const height = Math.max(24, Math.floor(((endMinutes - startMinutes) / 30) * slotHeight)); // minimum height
 
-  // ✅ Define getStatus here
-  const getStatus = (startTime) => {
+  // fallback getStatus if not provided
+  const localGetStatus = (startTime, endTime) => {
     const now = new Date();
-    const startTimeObj = new Date(startTime);
-
-    if (now < startTimeObj) return "upcoming";
-    if (now >= startTimeObj && now <= end) return "ongoing";
+    const s = new Date(startTime);
+    const e = new Date(endTime);
+    if (now < s) return "upcoming";
+    if (now >= s && now <= e) return "ongoing";
     return "completed";
   };
 
+  const status = (getStatus || localGetStatus)(appointment.startTime, appointment.endTime);
+
   return (
     <div
-      className={`appointment-block ${getStatus(appointment.startTime)}`}
+      className={`appointment-block ${status}`}
       style={{ top: `${top}px`, height: `${height}px` }}
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter") onClick(); }}
     >
       <strong>{appointment.title}</strong>
       <br />
