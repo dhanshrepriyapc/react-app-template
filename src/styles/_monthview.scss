@@ -1,14 +1,17 @@
 .month-view {
   flex: 1;
-  min-height: 0;
   overflow-y: auto;
   background: #fafafa;
-  height: calc(100vh - 100px);
+  padding-bottom: 10px;
 
   .month-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: 1fr; // make each row equally tall
+
+    // First row (headers) = auto height, remaining rows = equal flexible height
+    grid-auto-rows: 1fr;
+    grid-template-rows: auto repeat(6, 1fr);
+
     border-top: 1px solid #ddd;
     border-left: 1px solid #ddd;
     height: 100%;
@@ -17,7 +20,7 @@
   .month-header {
     text-align: center;
     font-weight: 600;
-    padding: 8px;
+    padding: 6px; // smaller padding for header
     background: #f0f0f0;
     border-right: 1px solid #ddd;
     border-bottom: 1px solid #ddd;
@@ -31,8 +34,8 @@
     padding: 8px;
     display: flex;
     flex-direction: column;
-    min-height: 120px; // ensures a good vertical height
-    justify-content: flex-start; // optionally space-between for balanced layout
+    justify-content: flex-start;
+    min-height: 100px; // ensures decent space for appointments
 
     .cell-date {
       font-size: 12px;
@@ -45,14 +48,14 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 4px; // slightly bigger gap between appointments
+      gap: 4px;
 
       .cell-appt {
         background: #1976d2;
         color: white;
         font-size: 11px;
         border-radius: 3px;
-        padding: 4px 6px; // slightly bigger padding
+        padding: 4px 6px;
         cursor: pointer;
         overflow: hidden;
         white-space: nowrap;
