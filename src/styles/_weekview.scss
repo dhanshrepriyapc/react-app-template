@@ -1,0 +1,59 @@
+.week-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #fafafa;
+  height: calc(100vh - 100px);
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+    height: 100%;
+  }
+
+  .week-day {
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+
+    .day-header {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #666;
+      text-align: center;
+    }
+
+    .day-appointments {
+      flex: 1;
+      position: relative;
+
+      .appointment-block {
+        background: #1976d2;
+        color: white;
+        border-radius: 4px;
+        padding: 4px 6px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #1565c0;
+          transform: translateY(-2px);
+        }
+      }
+
+      .empty-text {
+        font-size: 12px;
+        color: #aaa;
+        text-align: center;
+        margin-top: 12px;
+      }
+    }
+  }
+}

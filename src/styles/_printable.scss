@@ -1,0 +1,24 @@
+/* Print Styles */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .app, .main-content, .sidebar {
+    display: block; // hide sidebar if needed
+  }
+
+  .week-view, .month-view {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .page-header, .add-btn, .theme-toggle {
+    display: none; // hide non-essential UI
+  }
+
+  .appointment-block, .cell-appt {
+    page-break-inside: avoid; // prevent appointments from splitting across pages
+  }
+}

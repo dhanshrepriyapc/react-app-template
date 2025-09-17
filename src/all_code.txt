@@ -279,6 +279,79 @@ function Modal({ showModal, setShowModal, editingAppointment, handleAddOrEdit, h
 }
 
 export default Modal;
+import React, { useMemo } from "react";
+
+function MonthView({ appointments, selectedDate, onAppointmentClick, getStatus }) {
+const currentDate = new Date(selectedDate); 
+  const year = selectedDate.getFullYear();
+  const month = selectedDate.getMonth();
+
+  // First day of the month
+  const firstDay = new Date(year, month, 1);
+  const startDay = firstDay.getDay(); // 0=Sun
+
+  // Number of days in month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Build calendar cells
+  const daysArray = useMemo(() => {
+    const cells = [];
+    // Leading blanks
+    for (let i = 0; i < startDay; i++) {
+      cells.push(null);
+    }
+    // Actual days
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push(new Date(year, month, d));
+    }
+    return cells;
+  }, [year, month, startDay, daysInMonth]);
+
+  return (
+    <div className="month-view">
+      <div className="month-grid">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+          <div key={d} className="month-header">
+            {d}
+          </div>
+        ))}
+
+        {daysArray.map((day, idx) => (
+          <div key={idx} className="month-cell">
+            {day ? (
+              <>
+                <div className="cell-date">{day.getDate()}</div>
+                <div className="cell-appointments">
+                  {appointments
+                    .filter((a) => {
+                      const apptDate = new Date(a.startTime);
+                      return (
+                        apptDate.getDate() === day.getDate() &&
+                        apptDate.getMonth() === day.getMonth() &&
+                        apptDate.getFullYear() === day.getFullYear()
+                      );
+                    })
+                    .slice(0, 2) // show max 2 inline
+                    .map((appt) => (
+                      <div
+                        key={appt.id}
+                        className={`cell-appt ${getStatus(appt)}`}
+                        onClick={() => onAppointmentClick(appt)}
+                      >
+                        {appt.title}
+                      </div>
+                    ))}
+                </div>
+              </>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default MonthView;
 import React, { useState, useEffect } from "react";
 import DateNav from "./DateNav";
 
@@ -474,6 +547,67 @@ function Timeline({
 }
 
 export default Timeline;
+import React, { useMemo } from "react";
+import AppointmentBlock from "./AppointmentBlock";
+
+function WeekView({ appointments, selectedDate, onAppointmentClick, getStatus }) {
+  const startOfWeek = new Date(selectedDate);
+  startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay()); // Sunday start
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    return d;
+  });
+
+  // Group appointments by day
+  const appointmentsByDay = useMemo(() => {
+    return days.map((day) =>
+      appointments.filter((a) => {
+        const apptDate = new Date(a.startTime);
+        return (
+          apptDate.getDate() === day.getDate() &&
+          apptDate.getMonth() === day.getMonth() &&
+          apptDate.getFullYear() === day.getFullYear()
+        );
+      })
+    );
+  }, [appointments, days]);
+
+  return (
+    <div className="week-view">
+      <div className="week-grid">
+        {days.map((day, idx) => (
+          <div key={idx} className="week-day">
+            <div className="day-header">
+              {day.toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}
+            </div>
+            <div className="day-appointments">
+              {appointmentsByDay[idx].length === 0 ? (
+                <p className="empty-text">No appointments</p>
+              ) : (
+                appointmentsByDay[idx].map((appt) => (
+                  <AppointmentBlock
+                    key={appt.id}
+                    appointment={appt}
+                    onClick={() => onAppointmentClick(appt)}
+                    getStatus={getStatus}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default WeekView;
 /* ===========================
    Base Layout
 =========================== */
@@ -502,6 +636,10 @@ export default Timeline;
   background: #fff;
   z-index: 5;
 
+  display: flex; /* enables flexbox */
+  justify-content: space-between; /* pushes children to opposite ends */
+  align-items: center; /* vertically centers items */
+
   h2 {
     margin: 0;
     font-size: 1.6rem;
@@ -514,7 +652,23 @@ export default Timeline;
     font-size: 1rem;
     color: #8c8989;
   }
+
+  .theme-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 50%;
+    transition: background 0.3s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.08);
+    }
+  }
 }
+
+
 /* ===========================
    Floating Add Button
 =========================== */
@@ -589,6 +743,203 @@ export default Timeline;
 
     &:hover {
       background: #c82333;
+    }
+  }
+}
+/* ===========================
+   Dark Theme Overrides
+=========================== */
+body[data-theme="dark"] {
+  /* Base variables */
+  --bg-color: #1e1e1e;
+  --text-color: #f5f5f5;
+  --slot-bg: #2a2a2a;
+  --border-color: #444;
+  --now-line-color: #ff5555;
+
+  --header-bg: #2a2a2a;
+  --card-bg: #2e2e2e;
+  --card-border: #555;
+  --input-bg: #333;
+}
+
+/* App background + text */
+body[data-theme="dark"] .app,
+body[data-theme="dark"] .main-content {
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* Page Header */
+body[data-theme="dark"] .page-header {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+
+  h2 {
+    color: var(--text-color);
+  }
+  .subtitle {
+    color: #aaa;
+  }
+}
+
+/* Floating Add Button */
+body[data-theme="dark"] .add-btn {
+  background: #0d7a0d;
+  color: white;
+
+  &:hover {
+    background: #096009;
+  }
+}
+
+/* Error Modal */
+body[data-theme="dark"] .error-modal {
+  background: var(--card-bg);
+  color: var(--text-color);
+
+  h3 {
+    color: #ff6b6b;
+  }
+
+  p {
+    color: var(--text-color);
+  }
+
+  button {
+    background: #ff4444;
+    &:hover {
+      background: #cc0000;
+    }
+  }
+}
+
+/* Login Page */
+body[data-theme="dark"] .login-container {
+  background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+}
+
+body[data-theme="dark"] .login-title {
+  color: #90caf9;
+}
+
+body[data-theme="dark"] .login-form {
+  background: var(--card-bg);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+
+  input {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+
+  button {
+    background: #1976d2;
+    &:hover {
+      background: #0d47a1;
+    }
+  }
+}
+
+/* Modal */
+body[data-theme="dark"] .modal-content {
+  background: var(--card-bg);
+  color: var(--text-color);
+
+  input,
+  select {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+}
+
+body[data-theme="dark"] .modal-actions button[type="button"] {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+/* Sidebar */
+body[data-theme="dark"] .sidebar {
+  background: var(--bg-color);
+  color: var(--text-color);
+
+  .collapse-btn {
+    background: #1976d2;
+    color: #fff;
+  }
+
+  .sidebar-header {
+    background: #0d47a1;
+    color: #fff;
+  }
+
+  .sidebar-date {
+    button {
+      background: #1976d2;
+      &:hover {
+        background: #0d47a1;
+      }
+    }
+    span {
+      color: var(--text-color);
+    }
+  }
+
+  .appointment-list {
+    h3 {
+      color: var(--text-color);
+    }
+
+    .appointment-item {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--card-border);
+
+      .time {
+        color: #90caf9;
+      }
+
+      .description {
+        color: #aaa;
+      }
+
+      .appt-label {
+        background: #37474f;
+        color: #90caf9;
+      }
+    }
+  }
+}
+
+/* Timeline */
+body[data-theme="dark"] .timeline {
+  background: var(--bg-color);
+
+  .time-slot {
+    background: var(--slot-bg);
+    border-top: 1px solid var(--border-color);
+  }
+
+  .time-label {
+    color: #bbb;
+  }
+
+  .appointment-block {
+    background: #1976d2;
+    color: white;
+
+    &:hover {
+      background: #1565c0;
+    }
+  }
+
+  .now-line {
+    background: var(--now-line-color);
+
+    &::before {
+      background: var(--now-line-color);
     }
   }
 }
@@ -720,6 +1071,71 @@ export default Timeline;
     background: #dc3545 !important;
     color: white !important;
     border: none !important;
+  }
+}
+.month-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #fafafa;
+  height: calc(100vh - 100px);
+
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+  }
+
+  .month-header {
+    text-align: center;
+    font-weight: 600;
+    padding: 8px;
+    background: #f0f0f0;
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    font-size: 13px;
+    color: #444;
+  }
+
+  .month-cell {
+    min-height: 100px;
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+
+    .cell-date {
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .cell-appointments {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .cell-appt {
+        background: #1976d2;
+        color: white;
+        font-size: 11px;
+        border-radius: 3px;
+        padding: 2px 4px;
+        cursor: pointer;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #1565c0;
+        }
+      }
+    }
   }
 }
 /* ===========================
@@ -866,35 +1282,38 @@ export default Timeline;
     }
   }
 
-  .sidebar-date {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    margin: 12px 0;
+ .sidebar-date {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* centers the whole row */
+  padding: 8px 16px;
+  margin: 10px 0;
 
-    button {
-      background: #1565c0;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.2s ease;
+  button {
+    background: #1565c0;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px; /* smaller button size */
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s ease;
+    margin: 0 12px; /* adds spacing around buttons */
 
-      &:hover {
-        background: #303f9f;
-      }
-    }
-
-    span {
-      font-weight: 500;
-      font-size: 14px;
-      color: #333;
+    &:hover {
+      background: #303f9f;
     }
   }
+
+  span {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+    min-width: 100px; /* keeps date text width stable */
+    text-align: center;
+  }
+}
 
   .appointment-list {
     flex: 1;
@@ -1033,10 +1452,332 @@ export default Timeline;
   }
   
 }
+.week-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #fafafa;
+  height: calc(100vh - 100px);
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+    height: 100%;
+  }
+
+  .week-day {
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+
+    .day-header {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #666;
+      text-align: center;
+    }
+
+    .day-appointments {
+      flex: 1;
+      position: relative;
+
+      .appointment-block {
+        background: #1976d2;
+        color: white;
+        border-radius: 4px;
+        padding: 4px 6px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #1565c0;
+          transform: translateY(-2px);
+        }
+      }
+
+      .empty-text {
+        font-size: 12px;
+        color: #aaa;
+        text-align: center;
+        margin-top: 12px;
+      }
+    }
+  }
+}
+// import React, { useEffect, useState } from "react"; 
+// import { Moon, Sun } from "lucide-react";
+// import "./App.scss";
+// import Sidebar from "./components/Sidebar";
+// import Timeline from "./components/Timeline";
+// import Modal from "./components/Modal";
+// import ErrorModal from "./components/ErrorModal";
+// import Login from "./components/Login";
+// import WeekView from "./components/WeekView";
+// import MonthView from "./components/MonthView";
+
+// function App() {
+//   const [loggedIn, setLoggedIn] = useState(false);
+//   const [loggedInUser, setLoggedInUser] = useState(null);
+//   const [appointments, setAppointments] = useState([]);
+//   const [selectedDate, setSelectedDate] = useState(
+//     new Date().toISOString().split("T")[0]
+//   );
+//   const [nowPx, setNowPx] = useState(0);
+//   const [showModal, setShowModal] = useState(false);
+//   const [editingAppointment, setEditingAppointment] = useState(null);
+//   const [errorMessage, setErrorMessage] = useState(null);
+
+//   const SLOT_HEIGHT = 80;
+//   // theme state
+//   const [theme, setTheme] = useState(() => {
+//     return localStorage.getItem("theme") || "light";
+//   });
+
+//   // apply theme to <body>
+//   useEffect(() => {
+//     document.body.dataset.theme = theme;
+//     localStorage.setItem("theme", theme);
+//   }, [theme]);
+
+//   const toggleTheme = () => {
+//     setTheme(theme === "light" ? "dark" : "light");
+//   };
+//   const [currentView, setCurrentView] = useState("day");
+
+//   // --- Fetch appointments for logged-in user ---
+//   const fetchAppointments = async () => {
+//     if (!loggedInUser) return;
+
+//     try {
+//       const response = await fetch(
+//         `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`
+//       );
+//       if (!response.ok) throw new Error("Failed to fetch appointments");
+//       const data = await response.json();
+//       setAppointments(data);
+//     } catch (err) {
+//       console.error(err);
+//       setErrorMessage(err.message);
+//     }
+//   };
+
+//   // Trigger fetch on login or date change
+//   useEffect(() => {
+//   if (!loggedInUser) return;
+//   let cancelled = false;
+
+//   const fetchForUser = async () => {
+//     try {
+//       const res = await fetch(
+//         `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`
+//       );
+//       if (!res.ok) throw new Error("Failed to fetch appointments");
+//       const data = await res.json();
+//       if (!cancelled) setAppointments(data);
+//     } catch (err) {
+//       if (!cancelled) setErrorMessage(err.message);
+//     }
+//   };
+
+//   fetchForUser();
+//   return () => { cancelled = true; };
+// }, [loggedInUser]);
+
+
+//   // --- Update "now" line position ---
+//   useEffect(() => {
+//     const updateNowLine = () => {
+//       const now = new Date();
+//       const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+//       setNowPx((minutesSinceMidnight / 30) * SLOT_HEIGHT);
+//     };
+//     updateNowLine();
+//     const interval = setInterval(updateNowLine, 60000);
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   const isSameDay = (dateStr) =>
+//     new Date(dateStr).toDateString() === new Date(selectedDate).toDateString();
+
+//   const isToday = () =>
+//     new Date(selectedDate).toDateString() === new Date().toDateString();
+
+//   const getStatus = (start) =>
+//     new Date(start) < new Date() ? "completed" : "upcoming";
+
+//   const formatPrettyDate = (dateStr) =>
+//     new Date(dateStr).toLocaleDateString(undefined, {
+//       year: "numeric",
+//       month: "short",
+//       day: "numeric",
+//     });
+
+//   const to24Hour = (time, period) => {
+//     let [h, m] = time.split(":").map(Number);
+//     if (period === "PM" && h < 12) h += 12;
+//     if (period === "AM" && h === 12) h = 0;
+//     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+//   };
+
+//   // --- Add or Edit appointment ---
+  
+//   const handleAddOrEdit = async (e) => {
+//     e.preventDefault();
+//     const formData = new FormData(e.target);
+
+//     const startTime = to24Hour(formData.get("start"), formData.get("startPeriod"));
+//     const endTime = to24Hour(formData.get("end"), formData.get("endPeriod"));
+
+//     const payload = {
+//       title: formData.get("name"),
+//       startTime: `${selectedDate}T${startTime}:00`,
+//       endTime: `${selectedDate}T${endTime}:00`,
+//     };
+
+//     try {
+//       const url = editingAppointment
+//         ? `http://localhost:5169/api/appointments/${editingAppointment.id}?userId=${loggedInUser.id}`
+//         : `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`;
+
+//       const method = editingAppointment ? "PUT" : "POST";
+
+//       const response = await fetch(url, {
+//         method,
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify(payload),
+//       });
+
+//       if (response.status === 409) {
+//         const error = await response.json();
+//         setErrorMessage(error.message);
+//         return;
+//       }
+
+//       if (!response.ok) throw new Error("Failed to save appointment");
+
+//       setShowModal(false);
+//       setEditingAppointment(null);
+//       fetchAppointments();
+//     } catch (err) {
+//       setErrorMessage(err.message);
+//     }
+//   };
+
+//   // --- Delete appointment ---
+//   const handleDelete = async () => {
+//     if (!editingAppointment) return;
+
+//     try {
+//       const response = await fetch(
+//         `http://localhost:5169/api/appointments/${editingAppointment.id}?userId=${loggedInUser.id}`,
+//         { method: "DELETE" }
+//       );
+
+//       if (!response.ok) throw new Error("Failed to delete appointment");
+
+//       setShowModal(false);
+//       setEditingAppointment(null);
+//       fetchAppointments();
+//     } catch (err) {
+//       setErrorMessage(err.message);
+//     }
+//   };
+
+//   // --- Render login if not logged in ---
+//   if (!loggedIn) {
+//     return (
+//       <Login
+//         onLogin={(user) => {
+//           console.log("Logged in user:", user);
+//           setLoggedIn(true);
+//           setLoggedInUser(user);
+//         }}
+//       />
+//     );
+//   }
+
+//   // --- Main App ---
+//   return (
+//     <div className="app">
+//       <Sidebar
+//         appointments={appointments}
+//         selectedDate={selectedDate}
+//         setSelectedDate={setSelectedDate}
+//         isSameDay={isSameDay}
+//         getStatus={getStatus}
+//       />
+
+//       <div className="main-content">
+//         <div className="page-header">
+//           {/* View selector */}
+//           <select
+//             className="view-selector"
+//             value={currentView}
+//             onChange={(e) => setCurrentView(e.target.value)}
+//           >
+//             <option value="day">Day</option>
+//             <option value="week">Week</option>
+//             <option value="month">Month</option>
+//           </select>
+//           <h2>{formatPrettyDate(selectedDate)}</h2>
+//           <div className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+//            {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+//          </div>
+
+//         </div>
+
+//         <Timeline
+//           appointments={appointments}
+//           selectedDate={selectedDate}
+//           isSameDay={isSameDay}
+//           isToday={isToday}
+//           onAppointmentClick={(appointment) => {
+//             setEditingAppointment(appointment);
+//             setShowModal(true);
+//           }}
+//           nowPx={nowPx}
+//           slotHeight={SLOT_HEIGHT}
+//         />
+
+//         <button
+//           className="add-btn"
+//           onClick={() => {
+//             setEditingAppointment(null);
+//             setShowModal(true);
+//           }}
+//         >
+//           +
+//         </button>
+//       </div>
+
+//       <Modal
+//         showModal={showModal}
+//         setShowModal={setShowModal}
+//         editingAppointment={editingAppointment}
+//         handleAddOrEdit={handleAddOrEdit}
+//         handleDelete={handleDelete}
+//       />
+
+//       <ErrorModal message={errorMessage} onClose={() => setErrorMessage(null)} />
+//     </div>
+//   );
+// }
+
+// export default App;
 import React, { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import "./App.scss";
 import Sidebar from "./components/Sidebar";
 import Timeline from "./components/Timeline";
+import WeekView from "./components/WeekView";
+import MonthView from "./components/MonthView";
 import Modal from "./components/Modal";
 import ErrorModal from "./components/ErrorModal";
 import Login from "./components/Login";
@@ -1055,6 +1796,23 @@ function App() {
 
   const SLOT_HEIGHT = 80;
 
+  // theme state
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("theme") || "light";
+  });
+
+  useEffect(() => {
+    document.body.dataset.theme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
+
+  // current view state (day, week, month)
+  const [currentView, setCurrentView] = useState("day");
+
   // --- Fetch appointments for logged-in user ---
   const fetchAppointments = async () => {
     if (!loggedInUser) return;
@@ -1067,15 +1825,32 @@ function App() {
       const data = await response.json();
       setAppointments(data);
     } catch (err) {
-      console.error(err);
       setErrorMessage(err.message);
     }
   };
 
-  // Trigger fetch on login or date change
   useEffect(() => {
-    if (loggedInUser) fetchAppointments();
-  }, [loggedInUser, selectedDate, fetchAppointments]);
+    if (!loggedInUser) return;
+    let cancelled = false;
+
+    const fetchForUser = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`
+        );
+        if (!res.ok) throw new Error("Failed to fetch appointments");
+        const data = await res.json();
+        if (!cancelled) setAppointments(data);
+      } catch (err) {
+        if (!cancelled) setErrorMessage(err.message);
+      }
+    };
+
+    fetchForUser();
+    return () => {
+      cancelled = true;
+    };
+  }, [loggedInUser]);
 
   // --- Update "now" line position ---
   useEffect(() => {
@@ -1180,13 +1955,54 @@ function App() {
     return (
       <Login
         onLogin={(user) => {
-          console.log("Logged in user:", user);
           setLoggedIn(true);
           setLoggedInUser(user);
         }}
       />
     );
   }
+
+  // --- Pick correct view ---
+  const renderView = () => {
+    if (currentView === "day") {
+      return (
+        <Timeline
+          appointments={appointments}
+          selectedDate={selectedDate}
+          isSameDay={isSameDay}
+          isToday={isToday}
+          onAppointmentClick={(appointment) => {
+            setEditingAppointment(appointment);
+            setShowModal(true);
+          }}
+          nowPx={nowPx}
+          slotHeight={SLOT_HEIGHT}
+        />
+      );
+    } else if (currentView === "week") {
+      return (
+        <WeekView
+          appointments={appointments}
+          selectedDate={selectedDate}
+          onAppointmentClick={(appointment) => {
+            setEditingAppointment(appointment);
+            setShowModal(true);
+          }}
+        />
+      );
+    } else if (currentView === "month") {
+      return (
+        <MonthView
+          appointments={appointments}
+          selectedDate={selectedDate}
+          onAppointmentClick={(appointment) => {
+            setEditingAppointment(appointment);
+            setShowModal(true);
+          }}
+        />
+      );
+    }
+  };
 
   // --- Main App ---
   return (
@@ -1201,22 +2017,26 @@ function App() {
 
       <div className="main-content">
         <div className="page-header">
+          <select
+            className="view-selector"
+            value={currentView}
+            onChange={(e) => setCurrentView(e.target.value)}
+          >
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+          </select>
           <h2>{formatPrettyDate(selectedDate)}</h2>
-          <p className="subtitle">Schedule for the day</p>
+          <div
+            className="theme-toggle"
+            onClick={toggleTheme}
+            title="Toggle theme"
+          >
+            {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+          </div>
         </div>
 
-        <Timeline
-          appointments={appointments}
-          selectedDate={selectedDate}
-          isSameDay={isSameDay}
-          isToday={isToday}
-          onAppointmentClick={(appointment) => {
-            setEditingAppointment(appointment);
-            setShowModal(true);
-          }}
-          nowPx={nowPx}
-          slotHeight={SLOT_HEIGHT}
-        />
+        {renderView()}
 
         <button
           className="add-btn"
@@ -1252,6 +2072,9 @@ export default App;
 @use './styles/buttons';
 @use './styles/login';
 @use './styles/responsive';
+@use './styles/dark';
+@use './styles/monthview';
+@use './styles/weekview';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 

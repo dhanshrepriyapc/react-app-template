@@ -195,3 +195,99 @@ body[data-theme="dark"] .timeline {
     }
   }
 }
+/* Month View - Dark Theme */
+body[data-theme="dark"] .month-view {
+  background: var(--bg-color);
+
+  .month-grid {
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+  }
+
+  .month-header {
+    background: var(--header-bg);
+    color: var(--text-color);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .month-cell {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+
+    .cell-date {
+      color: var(--text-color);
+    }
+
+    .cell-appointments {
+      .cell-appt {
+        background: #3a76f0;
+        color: white;
+
+        &:hover {
+          background: #2e5bbd;
+        }
+      }
+    }
+  }
+}
+
+/* Week View - Dark Theme */
+body[data-theme="dark"] .week-view {
+  background: var(--bg-color);
+
+  .week-grid {
+    border-top: 1px solid var(--border-color);
+    border-left: 1px solid var(--border-color);
+  }
+
+  .week-day {
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+
+    .day-header {
+      color: var(--text-color);
+    }
+
+    .day-appointments {
+      .appointment-block {
+        background: #3a76f0;
+        color: white;
+
+        &:hover {
+          background: #2e5bbd;
+        }
+      }
+
+      .empty-text {
+        color: #888;
+      }
+    }
+  }
+}
+body[data-theme="dark"] .page-header {
+  background: #2a2a2a;
+  border-bottom: 1px solid #444;
+
+  h2 {
+    color: #90caf9;
+  }
+
+  .header-right {
+    select.view-selector {
+      background: #333;
+      color: #f5f5f5;
+      border: 1px solid #555;
+
+      &:hover {
+        border-color: #90caf9;
+      }
+    }
+
+    .theme-toggle {
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+.month-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #fafafa;
+  height: calc(100vh - 100px);
+
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 1fr; // make each row equally tall
+    border-top: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+    height: 100%;
+  }
+
+  .month-header {
+    text-align: center;
+    font-weight: 600;
+    padding: 8px;
+    background: #f0f0f0;
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    font-size: 13px;
+    color: #444;
+  }
+
+  .month-cell {
+    border-right: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 120px; // ensures a good vertical height
+    justify-content: flex-start; // optionally space-between for balanced layout
+
+    .cell-date {
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 6px;
+    }
+
+    .cell-appointments {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px; // slightly bigger gap between appointments
+
+      .cell-appt {
+        background: #1976d2;
+        color: white;
+        font-size: 11px;
+        border-radius: 3px;
+        padding: 4px 6px; // slightly bigger padding
+        cursor: pointer;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #1565c0;
+        }
+      }
+    }
+  }
+}
