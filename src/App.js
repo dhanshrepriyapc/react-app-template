@@ -22,6 +22,38 @@ function App() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const SLOT_HEIGHT = 80;
+  // --- KEYBOARD SHORTCUT ---
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setEditingAppointment(null);
+        setShowModal(true);
+      }
+      // Alt + Shift + D/W/M → Change view
+      if (e.altKey && e.shiftKey) {
+        switch (e.key.toLowerCase()) {
+          case "d":
+            e.preventDefault();
+            setCurrentView("day");
+            break;
+          case "w":
+            e.preventDefault();
+            setCurrentView("week");
+            break;
+          case "m":
+            e.preventDefault();
+            setCurrentView("month");
+            break;
+          default:
+            break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // theme state
   const [theme, setTheme] = useState(() => {
