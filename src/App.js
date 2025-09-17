@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./App.css";
+import "./App.scss";
 import Sidebar from "./components/Sidebar";
 import Timeline from "./components/Timeline";
 import Modal from "./components/Modal";
@@ -40,7 +40,7 @@ function App() {
   // Trigger fetch on login or date change
   useEffect(() => {
     if (loggedInUser) fetchAppointments();
-  }, [loggedInUser, selectedDate]);
+  }, [loggedInUser, selectedDate, fetchAppointments]);
 
   // --- Update "now" line position ---
   useEffect(() => {

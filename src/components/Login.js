@@ -28,12 +28,11 @@ function Login({ onLogin }) {
       setError("Something went wrong. Try again.");
     }
   };
-
   return (
     <div className="login-container">
+      {/* App Title */}
+      <h1 className="login-title">Appointments</h1>
       <form className="login-form" onSubmit={handleSubmit}>
-        <h2>Login</h2>
-        {error && <p className="error">{error}</p>}
         <input
           type="text"
           placeholder="Username"

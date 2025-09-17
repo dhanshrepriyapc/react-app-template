@@ -1,0 +1,132 @@
+.sidebar {
+  flex: 0 0 280px;
+  height: 100vh;
+  overflow-y: auto;
+  transition: all 0.3s ease;
+
+  &.closed {
+    flex: 0 0 50px;
+  }
+
+  .sidebar-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .collapse-btn {
+    position: absolute;
+    top: 10px;
+    left: -15px;
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    z-index: 2000;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-header {
+    background: #1565c0;
+    color: white;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.85;
+    }
+  }
+
+  .sidebar-date {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    margin: 12px 0;
+
+    button {
+      background: #1565c0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: #303f9f;
+      }
+    }
+
+    span {
+      font-weight: 500;
+      font-size: 14px;
+      color: #333;
+    }
+  }
+
+  .appointment-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+
+    h3 {
+      margin: 16px 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .appointment-item {
+      margin-bottom: 12px;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+      .time {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3f51b5;
+      }
+
+      .title {
+        font-size: 14px;
+        font-weight: 500;
+        margin: 2px 0;
+      }
+
+      .description {
+        font-size: 12px;
+        color: #777;
+      }
+
+      .appt-label {
+        display: inline-block;
+        margin-top: 4px;
+        background: #e0f0ff;
+        color: #1976d2;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    }
+  }
+}

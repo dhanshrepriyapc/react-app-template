@@ -1,0 +1,1499 @@
+﻿import React from "react";
+
+function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) {
+  const start = new Date(appointment.startTime);
+  const end = new Date(appointment.endTime);
+
+  const startMinutes = start.getHours() * 60 + start.getMinutes();
+  const endMinutes = end.getHours() * 60 + end.getMinutes();
+
+  const top = Math.floor((startMinutes / 30) * slotHeight);
+  const height = Math.max(24, Math.floor(((endMinutes - startMinutes) / 30) * slotHeight)); // minimum height
+
+  // fallback getStatus if not provided
+  const localGetStatus = (startTime, endTime) => {
+    const now = new Date();
+    const s = new Date(startTime);
+    const e = new Date(endTime);
+    if (now < s) return "upcoming";
+    if (now >= s && now <= e) return "ongoing";
+    return "completed";
+  };
+
+  const status = (getStatus || localGetStatus)(appointment.startTime, appointment.endTime);
+
+  return (
+    <div
+      className={`appointment-block ${status}`}
+      style={{ top: `${top}px`, height: `${height}px` }}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter") onClick(); }}
+    >
+      <strong>{appointment.title}</strong>
+      <br />
+      {start.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}{" "}
+      -{" "}
+      {end.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}
+    </div>
+  );
+}
+
+export default AppointmentBlock;
+import React from "react";
+
+function DateNav({ selectedDate, setSelectedDate }) {
+  const prevDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(d.toISOString().split("T")[0]);
+  };
+
+  const nextDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 1);
+    setSelectedDate(d.toISOString().split("T")[0]);
+  };
+
+  return (
+    <div className="date-nav">
+      <button onClick={prevDay}>â€¹</button>
+      <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+      <button onClick={nextDay}>â€º</button>
+    </div>
+  );
+}
+
+export default DateNav;
+import React from 'react';
+
+function ErrorModal({ message, onClose }) {
+  if (!message) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal error-modal">
+        <h3>Warning</h3>
+        <p>{message}</p>
+        <button onClick={onClose}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+export default ErrorModal;
+// import React, { useState } from "react";
+
+// function Login({ onLogin }) {
+//   const [username, setUsername] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [error, setError] = useState("");
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+
+//     try {
+//       const response = await fetch("http://localhost:5169/api/users/login", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ username, password }),
+//       });
+
+//       if (!response.ok) {
+//         const err = await response.json();
+//         setError(err.message || "Invalid username or password");
+//         return;
+//       }
+
+//       const user = await response.json();
+//       onLogin(user); // user = { id, username }
+//     } catch (err) {
+//       console.error(err);
+//       setError("Something went wrong. Try again.");
+//     }
+//   };
+
+//   return (
+//     <div className="login-container">
+//       <form className="login-form" onSubmit={handleSubmit}>
+//         <h2>Login</h2>
+//         {error && <p className="error">{error}</p>}
+//         <input
+//           type="text"
+//           placeholder="Username"
+//           value={username}
+//           onChange={(e) => setUsername(e.target.value)}
+//           required
+//         />
+//         <input
+//           type="password"
+//           placeholder="Password"
+//           value={password}
+//           onChange={(e) => setPassword(e.target.value)}
+//           required
+//         />
+//         <button type="submit">Login</button>
+//       </form>
+//     </div>
+//   );
+// }
+
+// export default Login;
+import React, { useState } from "react";
+
+function Login({ onLogin }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("http://localhost:5169/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        setError(err.message || "Invalid username or password");
+        return;
+      }
+
+      const user = await response.json();
+      onLogin(user); // user = { id, username }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Try again.");
+    }
+  };
+  return (
+    <div className="login-container">
+      {/* App Title */}
+      <h1 className="login-title">Appointments</h1>
+      <form className="login-form" onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  );
+}
+
+export default Login;
+// import React from "react";
+
+// function Modal({ showModal, setShowModal, editingAppointment, handleAddOrEdit, handleDelete }) {
+//   if (!showModal) return null;
+
+//   return (
+//     <div className="modal">
+//       <div className="modal-content">
+//         <h3>{editingAppointment ? "Edit Appointment" : "New Appointment"}</h3>
+//         <form onSubmit={handleAddOrEdit}>
+//           <input
+//             type="text"
+//             name="name"
+//             placeholder="Title"
+//             defaultValue={editingAppointment?.title || ""}
+//             required
+//           />
+
+//           {/* Start and End time inputs */}
+//           {["start", "end"].map((timeType) => (
+//             <div className="time-row" key={timeType}>
+//               <input
+//                 type="time"
+//                 name={timeType}
+//                 step="1800"
+//                 defaultValue={
+//                   editingAppointment
+//                     ? new Date(editingAppointment[timeType]).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
+//                     : ""
+//                 }
+//                 required
+//               />
+//               <select name={`${timeType}Period`} defaultValue="AM">
+//                 <option>AM</option>
+//                 <option>PM</option>
+//               </select>
+//             </div>
+//           ))}
+
+//           <div className="modal-actions">
+//             {editingAppointment && (
+//               <button type="button" className="delete-btn" onClick={handleDelete}>
+//                 Delete
+//               </button>
+//             )}
+//             <button type="button" onClick={() => setShowModal(false)}>
+//               Cancel
+//             </button>
+//             <button type="submit">{editingAppointment ? "Update" : "Save"}</button>
+//           </div>
+//         </form>
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default Modal;
+// src/components/Modal.js
+import React from "react";
+
+// helper to extract "HH:MM" from ISO timestamp
+const isoToTimeInput = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+};
+
+const derivePeriod = (iso) => {
+  if (!iso) return "AM";
+  const h = new Date(iso).getHours();
+  return h >= 12 ? "PM" : "AM";
+};
+
+function Modal({ showModal, setShowModal, editingAppointment, handleAddOrEdit, handleDelete }) {
+  if (!showModal) return null;
+
+  return (
+    <div className="modal">
+      <div className="modal-content" role="dialog" aria-modal="true">
+        <h3>{editingAppointment ? "Edit Appointment" : "New Appointment"}</h3>
+        <form onSubmit={handleAddOrEdit}>
+          <input
+            type="text"
+            name="name"
+            placeholder="Title"
+            defaultValue={editingAppointment?.title || ""}
+            required
+          />
+
+          {/* Start and End time inputs */}
+          {["start", "end"].map((timeType) => {
+            const isoField = timeType === "start" ? editingAppointment?.startTime : editingAppointment?.endTime;
+            const timeValue = isoToTimeInput(isoField); // gives 24-hour HH:MM for input[type=time]
+            const periodValue = derivePeriod(isoField);
+
+            return (
+              <div className="time-row" key={timeType}>
+                <input
+                  type="time"
+                  name={timeType}
+                  step="1800"
+                  defaultValue={timeValue}
+                  required
+                />
+                <select name={`${timeType}Period`} defaultValue={periodValue}>
+                  <option>AM</option>
+                  <option>PM</option>
+                </select>
+              </div>
+            );
+          })}
+
+          <div className="modal-actions">
+            {editingAppointment && (
+              <button type="button" className="delete-btn" onClick={handleDelete}>
+                Delete
+              </button>
+            )}
+            <button type="button" onClick={() => setShowModal(false)}>
+              Cancel
+            </button>
+            <button type="submit">{editingAppointment ? "Update" : "Save"}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default Modal;
+// import React, { useState } from "react";
+// import DateNav from "./DateNav";
+
+// function Sidebar({
+//   appointments,
+//   selectedDate,
+//   setSelectedDate,
+//   isSameDay,
+//   getStatus,
+// }) {
+//   const [isOpen, setIsOpen] = useState(false);
+
+//   const toggleSidebar = () => setIsOpen(!isOpen);
+
+//   const upcomingAppointments = appointments.filter(
+//     (a) => isSameDay(a.startTime) && getStatus(a.startTime) === "upcoming"
+//   );
+
+//   return (
+//     <>
+//       {/* Hamburger Button (mobile only) */}
+//       <button className="hamburger" onClick={toggleSidebar}>
+//         â˜°
+//       </button>
+
+//       <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+//         {/* Header */}
+//         <div className="sidebar-header">
+//           <div>
+//             <h2>ðŸ“… Appointments</h2>
+//             <p>Manage your schedule</p>
+//           </div>
+//           {/* Close button (mobile only) */}
+//           <button className="close-btn" onClick={toggleSidebar}>Ã—</button>
+//         </div>
+
+//         {/* Date navigation */}
+//         <div className="sidebar-date">
+//           <DateNav
+//             selectedDate={selectedDate}
+//             setSelectedDate={setSelectedDate}
+//           />
+//         </div>
+
+//         {/* Upcoming Appointments */}
+//         <div className="appointment-list">
+//           <h3>Recent & Upcoming</h3>
+//           {upcomingAppointments.length === 0 ? (
+//             <p className="empty-text">No upcoming appointments</p>
+//           ) : (
+//             upcomingAppointments.map((a) => (
+//               <div key={a.id} className="appointment-item upcoming">
+//                 <div className="appt-time">
+//                   {new Date(a.startTime).toLocaleTimeString([], {
+//                     hour: "2-digit",
+//                     minute: "2-digit",
+//                     hour12: true,
+//                   })}
+//                 </div>
+//                 <div className="appt-title">{a.title}</div>
+//                 <span className="appt-label">Upcoming</span>
+//               </div>
+//             ))
+//           )}
+//         </div>
+//       </aside>
+//     </>
+//   );
+// // }
+
+// export default Sidebar;
+import React, { useState, useEffect } from "react";
+import DateNav from "./DateNav";
+
+function Sidebar({ appointments, selectedDate, setSelectedDate, isSameDay, getStatus }) {
+  const [isMobileOpen, setIsMobileOpen] = useState(false); // mobile overlay
+  const [isCollapsed, setIsCollapsed] = useState(false);   // desktop collapse
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Track window resize
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    if (windowWidth <= 784) {
+      setIsMobileOpen(!isMobileOpen); // mobile overlay
+    } else {
+      setIsCollapsed(!isCollapsed);   // desktop collapse
+    }
+  };
+
+  // Filter upcoming appointments
+  const upcomingAppointments = appointments.filter(
+    (a) => isSameDay(a.startTime, selectedDate) && getStatus(a.startTime) === "upcoming"
+  );
+
+  return (
+    <>
+      {/* Hamburger for mobile */}
+      {windowWidth <= 784 && (
+        <button className="hamburger" onClick={toggleSidebar}>
+          â˜°
+        </button>
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`sidebar ${
+          windowWidth > 784 ? (isCollapsed ? "closed" : "") : isMobileOpen ? "open" : ""
+        }`}
+      >
+        {/* Collapse button for desktop */}
+        {windowWidth > 784 && (
+          <button className="collapse-btn" onClick={toggleSidebar}>
+            {isCollapsed ? "Â»" : "Â«"}
+          </button>
+        )}
+
+        {/* Content visible only when expanded or on mobile open */}
+        {(windowWidth <= 784 ? isMobileOpen : !isCollapsed) && (
+          <div className="sidebar-content">
+            <div className="sidebar-header">
+              <h2>ðŸ“… Appointments</h2>
+              <p>Manage your schedule</p>
+            </div>
+
+            <div className="sidebar-date">
+              <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+            </div>
+
+            <div className="appointment-list">
+              <h3>Recent & Upcoming</h3>
+              {upcomingAppointments.length === 0 ? (
+                <p className="empty-text">No upcoming appointments</p>
+              ) : (
+                upcomingAppointments.map((a) => (
+                  <div key={a.id} className="appointment-item upcoming">
+                    <div className="appt-time">
+                      {new Date(a.startTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </div>
+                    <div className="appt-title">{a.title}</div>
+                    <span className="appt-label">Upcoming</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {/* Overlay for mobile */}
+      {windowWidth <= 784 && (
+        <div
+          className={`sidebar-overlay ${isMobileOpen ? "active" : ""}`}
+          onClick={toggleSidebar}
+        ></div>
+      )}
+    </>
+  );
+}
+
+export default Sidebar;
+// import React, { useEffect, useRef } from "react";
+// import AppointmentBlock from "./AppointmentBlock";
+
+// function Timeline({
+//   appointments,
+//   selectedDate,
+//   isSameDay,
+//   isToday,
+//   onAppointmentClick,
+//   slotHeight,
+// }) {
+//   const timelineRef = useRef(null);
+
+//   const renderSlots = () => {
+//     return Array.from({ length: 48 }, (_, i) => {
+//       const hour24 = Math.floor(i / 2);
+//       const minute = i % 2 === 0 ? "00" : "30";
+//       const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+//       const ampm = hour24 < 12 ? "AM" : "PM";
+//       const timeLabel = `${hour12}:${minute} ${ampm}`;
+
+//       return (
+//         <div key={i} className="time-slot" style={{ height: `${slotHeight}px` }}>
+//           <div className="time-label">{timeLabel}</div>
+//         </div>
+//       );
+//     });
+//   };
+
+//   const renderAppointments = () => {
+//     return appointments
+//       .filter((a) => isSameDay(a.startTime, selectedDate))
+//       .map((appointment) => (
+//         <AppointmentBlock
+//           key={appointment.id}
+//           appointment={appointment}
+//           onClick={() => onAppointmentClick(appointment)}
+//         />
+//       ));
+//   };
+
+//   // Scroll to next upcoming appointment
+//   useEffect(() => {
+//     const todayAppointments = appointments
+//       .filter((a) => isSameDay(a.startTime, selectedDate))
+//       .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+//     if (todayAppointments.length && timelineRef.current) {
+//       const now = new Date();
+
+//       // Find the first appointment starting after now
+//       let targetAppointment = todayAppointments.find(
+//         (a) => new Date(a.startTime) > now
+//       );
+
+//       // If all appointments are past, scroll to the last one
+//       if (!targetAppointment) {
+//         targetAppointment = todayAppointments[todayAppointments.length - 1];
+//       }
+
+//       const start = new Date(targetAppointment.startTime);
+//       const startMinutes = start.getHours() * 60 + start.getMinutes();
+//       const top = (startMinutes / 30) * slotHeight;
+
+//       timelineRef.current.scrollTop = top - 20; // scroll slightly above
+//     }
+//   }, [appointments, selectedDate, slotHeight, isSameDay]);
+
+//   return (
+//     <div className="timeline" ref={timelineRef}>
+//       <div className="slots-container">{renderSlots()}</div>
+//       <div className="appointments-container" style={{ height: `${48 * slotHeight}px` }}>
+//         {renderAppointments()}
+//         {isToday() && (
+//           <div
+//             className="now-line"
+//             style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) / 30 * slotHeight}px` }}
+//           />
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// export default Timeline;
+// src/components/Timeline.js
+import React, { useEffect, useRef } from "react";
+import AppointmentBlock from "./AppointmentBlock";
+
+function Timeline({
+  appointments,
+  selectedDate,
+  isSameDay,
+  isToday,
+  onAppointmentClick,
+  slotHeight = 80,
+  getStatus,
+  nowPx,
+}) {
+  const timelineRef = useRef(null);
+
+  const renderSlots = () => {
+    return Array.from({ length: 48 }, (_, i) => {
+      const hour24 = Math.floor(i / 2);
+      const minute = i % 2 === 0 ? "00" : "30";
+      const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+      const ampm = hour24 < 12 ? "AM" : "PM";
+      const timeLabel = `${hour12}:${minute} ${ampm}`;
+
+      return (
+        <div key={i} className="time-slot" style={{ height: `${slotHeight}px` }}>
+          <div className="time-label">{timeLabel}</div>
+        </div>
+      );
+    });
+  };
+
+  const renderAppointments = () => {
+    return appointments
+      .filter((a) => isSameDay(a.startTime, selectedDate))
+      .map((appointment) => (
+        <AppointmentBlock
+          key={appointment.id}
+          appointment={appointment}
+          onClick={() => onAppointmentClick(appointment)}
+          slotHeight={slotHeight}
+          getStatus={getStatus}
+        />
+      ));
+  };
+
+  // Scroll to next upcoming appointment
+  useEffect(() => {
+    const todayAppointments = appointments
+      .filter((a) => isSameDay(a.startTime, selectedDate))
+      .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    if (todayAppointments.length && timelineRef.current) {
+      const now = new Date();
+
+      // Find the first appointment starting after now
+      let targetAppointment = todayAppointments.find(
+        (a) => new Date(a.startTime) > now
+      );
+
+      // If all appointments are past, scroll to the last one
+      if (!targetAppointment) {
+        targetAppointment = todayAppointments[todayAppointments.length - 1];
+      }
+
+      if (targetAppointment) {
+        const start = new Date(targetAppointment.startTime);
+        const startMinutes = start.getHours() * 60 + start.getMinutes();
+        const top = (startMinutes / 30) * slotHeight;
+        timelineRef.current.scrollTop = Math.max(0, top - 20);
+      }
+    }
+  }, [appointments, selectedDate, slotHeight, isSameDay]);
+
+  return (
+    <div className="timeline" ref={timelineRef}>
+      <div className="slots-container">{renderSlots()}</div>
+      <div className="appointments-container" style={{ height: `${48 * slotHeight}px` }}>
+        {renderAppointments()}
+        {isToday() && (
+          <div
+            className="now-line"
+            style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) / 30 * slotHeight}px` }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Timeline;
+/* ===========================
+   Base Layout
+=========================== */
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0; /* prevents overflow */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overflow-y: auto; 
+  height: 100vh;
+}
+
+/* Page Header */
+.page-header {
+  flex: 0 0 auto;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fff;
+  z-index: 5;
+
+  h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #1976d2;
+  }
+
+  .subtitle {
+    margin: 4px 0 0;
+    font-size: 1rem;
+    color: #8c8989;
+  }
+}
+/* ===========================
+   Floating Add Button
+=========================== */
+.add-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: rgb(5,147,5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  font-size: 32px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+  transition: background 0.3s;
+  z-index: 1000;
+
+  &:hover {
+    background: rgb(4,122,4);
+  }
+}
+
+/* ===========================
+   Error Modal
+=========================== */
+.error-modal {
+  background: white;
+  padding: 24px 32px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: slideIn 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+
+  h3 {
+    color: #dc3545;
+    margin: 0;
+    font-size: 22px;
+  }
+
+  p {
+    margin: 0;
+    color: #444;
+    line-height: 1.5;
+    font-size: 16px;
+  }
+
+  button {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+    margin-top: 8px;
+
+    &:hover {
+      background: #c82333;
+    }
+  }
+}
+/* ===========================
+   Login Page
+=========================== */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #feffff 0%, #ffffff 100%);
+  font-family: Arial, sans-serif;
+}
+
+.login-title {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+  color: #1976d2;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  width: 300px;
+
+  input {
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  button {
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    background: #1976d2;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.3s;
+
+    &:hover {
+      background: #044d96;
+    }
+  }
+
+  .error {
+    color: red;
+    font-size: 14px;
+  }
+}
+.modal,
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-overlay {
+  background: rgba(0,0,0,0.6);
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    input,
+    select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+
+  button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &[type="submit"] {
+      background: #1976d2;
+      color: white;
+      border: none;
+    }
+
+    &[type="button"] {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+    }
+  }
+
+  .delete-btn {
+    margin-right: auto;
+    background: #dc3545 !important;
+    color: white !important;
+    border: none !important;
+  }
+}
+/* ===========================
+   Responsive Sidebar
+=========================== */
+@media (max-width: 784px) {
+  .app {
+    display: block;
+    width: 100%;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100%;
+    background: #f8f9fa;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease, flex 0.3s ease;
+    z-index: 1100;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+
+    &.open {
+      transform: translateX(0);
+    }
+
+    &.closed {
+      flex: 0 0 50px;
+    }
+  }
+
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    transition: margin 0.3s ease;
+  }
+
+  .app.sidebar-closed .main-content {
+    margin-left: 50px;
+  }
+
+  .hamburger {
+    display: block;
+    position: fixed;
+    top: 0.3em;
+    left: 0;
+    background: #207edc;
+    color: white;
+    font-size: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    z-index: 1101;
+    cursor: pointer;
+  }
+
+  .collapse-btn {
+    display: none;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.3);
+    z-index: 1050;
+    opacity: 0;
+    transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+    pointer-events: none;
+
+    &.active {
+      opacity: 1;
+      pointer-events: all;
+      backdrop-filter: blur(1px);
+    }
+  }
+
+  .sidebar.open + .sidebar-overlay {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .sidebar-overlay.active ~ .main-content {
+    filter: blur(2px);
+    transition: filter 0.3s ease;
+    background: rgba(0,0,0,0.5);
+  }
+}
+.sidebar {
+  flex: 0 0 280px;
+  height: 100vh;
+  overflow-y: auto;
+  transition: all 0.3s ease;
+
+  &.closed {
+    flex: 0 0 50px;
+  }
+
+  .sidebar-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .collapse-btn {
+    position: absolute;
+    top: 10px;
+    left: -15px;
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    z-index: 2000;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-header {
+    background: #1565c0;
+    color: white;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.85;
+    }
+  }
+
+  .sidebar-date {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    margin: 12px 0;
+
+    button {
+      background: #1565c0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: #303f9f;
+      }
+    }
+
+    span {
+      font-weight: 500;
+      font-size: 14px;
+      color: #333;
+    }
+  }
+
+  .appointment-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+
+    h3 {
+      margin: 16px 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .appointment-item {
+      margin-bottom: 12px;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+      .time {
+        font-size: 12px;
+        font-weight: 600;
+        color: #3f51b5;
+      }
+
+      .title {
+        font-size: 14px;
+        font-weight: 500;
+        margin: 2px 0;
+      }
+
+      .description {
+        font-size: 12px;
+        color: #777;
+      }
+
+      .appt-label {
+        display: inline-block;
+        margin-top: 4px;
+        background: #e0f0ff;
+        color: #1976d2;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    }
+  }
+}
+.timeline {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  background: #fafafa;
+
+  .timeline-grid {
+    position: relative;
+    z-index: 1;
+    padding-left: 80px;
+  }
+
+  .slots-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+
+  .time-slot {
+    position: relative;
+    border-top: 1px solid #ddd;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .time-label {
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    font-size: 10px;
+    color: #999;
+  }
+
+  .appointments-container {
+    position: relative;
+    margin-left: 50px;
+    z-index: 2;
+
+    .appointment-block {
+      position: absolute;
+      left: 10px;
+      right: 20px;
+      background: #1976d2;
+      color: white;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 13px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      z-index: 2;
+      transition: all 0.2s ease;
+      cursor: pointer;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        background: #1565c0;
+      }
+    }
+  }
+
+  .now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: red;
+    z-index: 3;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      background: red;
+      border-radius: 50%;
+      box-shadow: 0 0 4px rgba(255,0,0,0.5);
+    }
+  }
+}
+import React, { useEffect, useState } from "react";
+import "./App.scss";
+import Sidebar from "./components/Sidebar";
+import Timeline from "./components/Timeline";
+import Modal from "./components/Modal";
+import ErrorModal from "./components/ErrorModal";
+import Login from "./components/Login";
+
+function App() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [nowPx, setNowPx] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const SLOT_HEIGHT = 80;
+
+  // --- Fetch appointments for logged-in user ---
+  const fetchAppointments = async () => {
+    if (!loggedInUser) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch appointments");
+      const data = await response.json();
+      setAppointments(data);
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err.message);
+    }
+  };
+
+  // Trigger fetch on login or date change
+  useEffect(() => {
+    if (loggedInUser) fetchAppointments();
+  }, [loggedInUser, selectedDate, fetchAppointments]);
+
+  // --- Update "now" line position ---
+  useEffect(() => {
+    const updateNowLine = () => {
+      const now = new Date();
+      const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+      setNowPx((minutesSinceMidnight / 30) * SLOT_HEIGHT);
+    };
+    updateNowLine();
+    const interval = setInterval(updateNowLine, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isSameDay = (dateStr) =>
+    new Date(dateStr).toDateString() === new Date(selectedDate).toDateString();
+
+  const isToday = () =>
+    new Date(selectedDate).toDateString() === new Date().toDateString();
+
+  const getStatus = (start) =>
+    new Date(start) < new Date() ? "completed" : "upcoming";
+
+  const formatPrettyDate = (dateStr) =>
+    new Date(dateStr).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+  const to24Hour = (time, period) => {
+    let [h, m] = time.split(":").map(Number);
+    if (period === "PM" && h < 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
+  // --- Add or Edit appointment ---
+  const handleAddOrEdit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+
+    const startTime = to24Hour(formData.get("start"), formData.get("startPeriod"));
+    const endTime = to24Hour(formData.get("end"), formData.get("endPeriod"));
+
+    const payload = {
+      title: formData.get("name"),
+      startTime: `${selectedDate}T${startTime}:00`,
+      endTime: `${selectedDate}T${endTime}:00`,
+    };
+
+    try {
+      const url = editingAppointment
+        ? `http://localhost:5169/api/appointments/${editingAppointment.id}?userId=${loggedInUser.id}`
+        : `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`;
+
+      const method = editingAppointment ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 409) {
+        const error = await response.json();
+        setErrorMessage(error.message);
+        return;
+      }
+
+      if (!response.ok) throw new Error("Failed to save appointment");
+
+      setShowModal(false);
+      setEditingAppointment(null);
+      fetchAppointments();
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  // --- Delete appointment ---
+  const handleDelete = async () => {
+    if (!editingAppointment) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5169/api/appointments/${editingAppointment.id}?userId=${loggedInUser.id}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) throw new Error("Failed to delete appointment");
+
+      setShowModal(false);
+      setEditingAppointment(null);
+      fetchAppointments();
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  // --- Render login if not logged in ---
+  if (!loggedIn) {
+    return (
+      <Login
+        onLogin={(user) => {
+          console.log("Logged in user:", user);
+          setLoggedIn(true);
+          setLoggedInUser(user);
+        }}
+      />
+    );
+  }
+
+  // --- Main App ---
+  return (
+    <div className="app">
+      <Sidebar
+        appointments={appointments}
+        selectedDate={selectedDate}
+        setSelectedDate={setSelectedDate}
+        isSameDay={isSameDay}
+        getStatus={getStatus}
+      />
+
+      <div className="main-content">
+        <div className="page-header">
+          <h2>{formatPrettyDate(selectedDate)}</h2>
+          <p className="subtitle">Schedule for the day</p>
+        </div>
+
+        <Timeline
+          appointments={appointments}
+          selectedDate={selectedDate}
+          isSameDay={isSameDay}
+          isToday={isToday}
+          onAppointmentClick={(appointment) => {
+            setEditingAppointment(appointment);
+            setShowModal(true);
+          }}
+          nowPx={nowPx}
+          slotHeight={SLOT_HEIGHT}
+        />
+
+        <button
+          className="add-btn"
+          onClick={() => {
+            setEditingAppointment(null);
+            setShowModal(true);
+          }}
+        >
+          +
+        </button>
+      </div>
+
+      <Modal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        editingAppointment={editingAppointment}
+        handleAddOrEdit={handleAddOrEdit}
+        handleDelete={handleDelete}
+      />
+
+      <ErrorModal message={errorMessage} onClose={() => setErrorMessage(null)} />
+    </div>
+  );
+}
+
+export default App;
+
+// use all partials
+@use './styles/base';
+@use './styles/sidebar';
+@use './styles/timeline';
+@use './styles/modal';
+@use './styles/buttons';
+@use './styles/login';
+@use './styles/responsive';
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders learn react link', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
+});
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';

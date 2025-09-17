@@ -1,0 +1,89 @@
+.timeline {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow-y: auto;
+  background: #fafafa;
+  height: calc(100vh - 100px); 
+
+  .timeline-grid {
+    position: relative;
+    z-index: 1;
+    padding-left: 80px;
+    height: calc(48 * 80px); /* 48 slots * slot height */
+  }
+
+  .slots-container {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .time-slot {
+    position: relative;
+    border-top: 1px solid #ddd;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .time-label {
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    font-size: 15px;
+    color: #999;
+  }
+
+  .appointments-container {
+    position: relative;
+    width: 100%;
+    top: 0;
+      
+
+    .appointment-block {
+      position: absolute;
+      left: 10px;
+      right: 20px;
+      background: #1976d2;
+      color: white;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 13px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      z-index: 2;
+      transition: all 0.2s ease;
+      cursor: pointer;
+     
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        background: #1565c0;
+      }
+    }
+  }
+
+  .now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: red;
+    z-index: 3;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      background: red;
+      border-radius: 50%;
+      box-shadow: 0 0 4px rgba(255,0,0,0.5);
+    }
+  }
+  
+}
