@@ -19,18 +19,20 @@ function App() {
   const [nowPx, setNowPx] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
+  const [newSlotTime, setNewSlotTime] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
   const SLOT_HEIGHT = 80;
-  // --- KEYBOARD SHORTCUT ---
+
+  // --- SHORTCUTS ---
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         setEditingAppointment(null);
+        setNewSlotTime(new Date()); // default now
         setShowModal(true);
       }
-      // Alt + Shift + D/W/M → Change view
       if (e.altKey && e.shiftKey) {
         switch (e.key.toLowerCase()) {
           case "d":
@@ -50,12 +52,11 @@ function App() {
         }
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // theme state
+  // --- THEME ---
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("theme") || "light";
   });
@@ -69,13 +70,12 @@ function App() {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  // current view state (day, week, month)
+  // --- VIEW ---
   const [currentView, setCurrentView] = useState("day");
 
-  // --- Fetch appointments for logged-in user ---
+  // --- FETCH ---
   const fetchAppointments = async () => {
     if (!loggedInUser) return;
-
     try {
       const response = await fetch(
         `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`
@@ -91,7 +91,6 @@ function App() {
   useEffect(() => {
     if (!loggedInUser) return;
     let cancelled = false;
-
     const fetchForUser = async () => {
       try {
         const res = await fetch(
@@ -104,14 +103,13 @@ function App() {
         if (!cancelled) setErrorMessage(err.message);
       }
     };
-
     fetchForUser();
     return () => {
       cancelled = true;
     };
   }, [loggedInUser]);
 
-  // --- Update "now" line position ---
+  // --- NOW LINE ---
   useEffect(() => {
     const updateNowLine = () => {
       const now = new Date();
@@ -123,6 +121,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // --- HELPERS ---
   const isSameDay = (dateStr) =>
     new Date(dateStr).toDateString() === new Date(selectedDate).toDateString();
 
@@ -146,7 +145,7 @@ function App() {
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
 
-  // --- Add or Edit appointment ---
+  // --- ADD / EDIT ---
   const handleAddOrEdit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -164,7 +163,6 @@ function App() {
       const url = editingAppointment
         ? `http://localhost:5169/api/appointments/${editingAppointment.id}?userId=${loggedInUser.id}`
         : `http://localhost:5169/api/appointments?userId=${loggedInUser.id}`;
-
       const method = editingAppointment ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -183,24 +181,22 @@ function App() {
 
       setShowModal(false);
       setEditingAppointment(null);
+      setNewSlotTime(null);
       fetchAppointments();
     } catch (err) {
       setErrorMessage(err.message);
     }
   };
 
-  // --- Delete appointment ---
+  // --- DELETE ---
   const handleDelete = async () => {
     if (!editingAppointment) return;
-
     try {
       const response = await fetch(
         `http://localhost:5169/api/appointments/${editingAppointment.id}?userId=${loggedInUser.id}`,
         { method: "DELETE" }
       );
-
       if (!response.ok) throw new Error("Failed to delete appointment");
-
       setShowModal(false);
       setEditingAppointment(null);
       fetchAppointments();
@@ -209,7 +205,7 @@ function App() {
     }
   };
 
-  // --- Render login if not logged in ---
+  // --- LOGIN ---
   if (!loggedIn) {
     return (
       <Login
@@ -221,7 +217,7 @@ function App() {
     );
   }
 
-  // --- Pick correct view ---
+  // --- RENDER VIEW ---
   const renderView = () => {
     if (currentView === "day") {
       return (
@@ -232,11 +228,17 @@ function App() {
           isToday={isToday}
           onAppointmentClick={(appointment) => {
             setEditingAppointment(appointment);
+            setNewSlotTime(null);
+            setShowModal(true);
+          }}
+          onEmptySlotClick={(time) => {
+            setEditingAppointment(null);
+            setNewSlotTime(time);
             setShowModal(true);
           }}
           nowPx={nowPx}
           slotHeight={SLOT_HEIGHT}
-          loggedInUser={loggedInUser}      
+          loggedInUser={loggedInUser}
           fetchAppointments={fetchAppointments}
         />
       );
@@ -247,6 +249,7 @@ function App() {
           selectedDate={selectedDate}
           onAppointmentClick={(appointment) => {
             setEditingAppointment(appointment);
+            setNewSlotTime(null);
             setShowModal(true);
           }}
         />
@@ -259,6 +262,7 @@ function App() {
           getStatus={getStatus}
           onAppointmentClick={(appointment) => {
             setEditingAppointment(appointment);
+            setNewSlotTime(null);
             setShowModal(true);
           }}
         />
@@ -266,7 +270,6 @@ function App() {
     }
   };
 
-  // --- Main App ---
   return (
     <div className="app">
       <Sidebar
@@ -301,13 +304,13 @@ function App() {
           </div>
         </div>
 
-
         {renderView()}
 
         <button
           className="add-btn"
           onClick={() => {
             setEditingAppointment(null);
+            setNewSlotTime(new Date());
             setShowModal(true);
           }}
         >
@@ -319,6 +322,7 @@ function App() {
         showModal={showModal}
         setShowModal={setShowModal}
         editingAppointment={editingAppointment}
+        newSlotTime={newSlotTime}
         handleAddOrEdit={handleAddOrEdit}
         handleDelete={handleDelete}
       />
