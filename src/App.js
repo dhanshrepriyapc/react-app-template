@@ -306,16 +306,25 @@ function App() {
 
         {renderView()}
 
-        <button
-          className="add-btn"
-          onClick={() => {
-            setEditingAppointment(null);
-            setNewSlotTime(new Date());
-            setShowModal(true);
-          }}
-        >
-          +
-        </button>
+              <button
+        className="add-btn"
+        onClick={() => {
+          setEditingAppointment(null);
+
+          // snap to nearest 30-min slot
+          const now = new Date();
+          const minutes = now.getMinutes();
+          const roundedMinutes = minutes < 30 ? 0 : 30;
+
+          const slotTime = new Date(now);
+          slotTime.setMinutes(roundedMinutes, 0, 0);
+
+          setNewSlotTime(slotTime);
+          setShowModal(true);
+        }}
+      >
+        +
+      </button>
       </div>
 
       <Modal
