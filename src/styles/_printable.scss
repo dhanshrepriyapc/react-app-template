@@ -5,20 +5,28 @@
     color: #000;
   }
 
-  .app, .main-content, .sidebar {
-    display: block; // hide sidebar if needed
+  /* Hide non-essential UI */
+  .page-header,
+  .add-btn,
+  .theme-toggle,
+  .sidebar,
+  .time-slot {
+    display: none !important;
   }
 
-  .week-view, .month-view {
-    height: auto !important;
+  /* Only show appointments */
+  .timeline,
+  .appointments-container {
+    display: block !important;
     overflow: visible !important;
+    height: auto !important;
   }
 
-  .page-header, .add-btn, .theme-toggle {
-    display: none; // hide non-essential UI
-  }
-
-  .appointment-block, .cell-appt {
-    page-break-inside: avoid; // prevent appointments from splitting across pages
+  .appointment-block {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    page-break-inside: avoid; /* avoid breaking appointment across pages */
   }
 }

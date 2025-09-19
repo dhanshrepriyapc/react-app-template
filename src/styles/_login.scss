@@ -50,9 +50,6 @@
     cursor: pointer;
     transition: 0.3s;
 
-    &:hover {
-      background: #044d96;
-    }
   }
 
   .error {
@@ -69,7 +66,7 @@
     .link-button {
       background: none;
       border: none;
-      color: #1976d2;
+      color: rgb(1, 97, 1);
       font-weight: bold;
       cursor: pointer;
       text-decoration: underline;
@@ -78,7 +75,8 @@
     }
 
     .link-button:hover {
-      color: #044d96;
+      color: #06b64a;
+      background-color: none;
     }
   }
 }
