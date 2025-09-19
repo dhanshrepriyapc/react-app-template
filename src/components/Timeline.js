@@ -12,6 +12,7 @@ function Timeline({
   getStatus,
   nowPx,
   loggedInUser,
+  fetchAppointments
 }) {
   const timelineRef = useRef(null);
   const [localAppointments, setLocalAppointments] = useState(appointments);
@@ -67,53 +68,59 @@ function Timeline({
   const handleDragOver = (e) => e.preventDefault();
 
   const handleDrop = async (e) => {
-    e.preventDefault();
-    const apptId = e.dataTransfer.getData("text/plain");
-    if (!apptId) return;
+  e.preventDefault();
+  const apptId = e.dataTransfer.getData("text/plain");
+  if (!apptId) return;
 
-    const containerRect = timelineRef.current.getBoundingClientRect();
-    const offsetY =
-      e.clientY - containerRect.top + timelineRef.current.scrollTop;
+  const containerRect = timelineRef.current.getBoundingClientRect();
+  const offsetY =
+    e.clientY - containerRect.top + timelineRef.current.scrollTop;
 
-    // Snap to nearest 30 mins
-    const totalMinutes =
-      Math.round(((offsetY / slotHeight) * 30) / 30) * 30;
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+  // Snap to nearest 30 mins
+  const totalMinutes = Math.round(((offsetY / slotHeight) * 30) / 30) * 30;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
 
-    const appt = todayAppointments.find((a) => a.id.toString() === apptId);
-    if (!appt) return;
+  const appt = todayAppointments.find((a) => a.id.toString() === apptId);
+  if (!appt) return;
 
-    const duration =
-      (new Date(appt.endTime) - new Date(appt.startTime)) / (1000 * 60);
+  const duration =
+    (new Date(appt.endTime) - new Date(appt.startTime)) / (1000 * 60);
 
-    const newStart = new Date(selectedDate);
-    newStart.setHours(hours, minutes, 0, 0);
-    const newEnd = new Date(newStart.getTime() + duration * 60000);
+  // 🔑 Use same format as App.js (local IST string, not UTC)
+  const pad = (n) => String(n).padStart(2, "0");
+  const newStart = `${selectedDate}T${pad(hours)}:${pad(minutes)}:00`;
+  const newEndDate = new Date(new Date(newStart).getTime() + duration * 60000);
+  const newEnd = `${selectedDate}T${pad(newEndDate.getHours())}:${pad(newEndDate.getMinutes())}:00`;
 
-    // Instant UI update
-    setLocalAppointments((prev) =>
-      prev.map((a) =>
-        a.id === appt.id
-          ? { ...a, startTime: newStart, endTime: newEnd }
-          : a
-      )
-    );
+  // Instant UI update
+  setLocalAppointments((prev) =>
+    prev.map((a) =>
+      a.id === appt.id
+        ? { ...a, startTime: newStart, endTime: newEnd }
+        : a
+    )
+  );
 
-    // Backend update
-    fetch(
-      `http://localhost:5169/api/appointments/${appt.id}?userId=${loggedInUser.id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...appt,
-          startTime: newStart.toISOString(),
-          endTime: newEnd.toISOString(),
-        }),
-      }
-    ).catch(console.error);
-  };
+  // Backend update (same as App.js add/edit)
+  fetch(
+    `http://localhost:5169/api/appointments/${appt.id}?userId=${loggedInUser.id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...appt,
+        startTime: newStart,
+        endTime: newEnd,
+      }),
+    }
+  )
+    .then(() => {
+      // optional: re-sync from backend like App.js does
+      if (typeof fetchAppointments === "function") fetchAppointments();
+    })
+    .catch(console.error);
+};
 
   return (
     <div className="timeline">
