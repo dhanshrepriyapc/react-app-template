@@ -172,3 +172,14 @@
     }
   }
 }
+@keyframes highlightFade {
+  0% {
+    border: 2px solid #ff9800;
+  }
+  100% {
+    border: 2px solid transparent;
+  }
+}
+.appointment-block.highlight {
+  animation: highlightFade 30s forwards;
+}

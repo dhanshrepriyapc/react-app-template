@@ -12,7 +12,8 @@ function Timeline({
   getStatus,
   nowPx,
   loggedInUser,
-  fetchAppointments
+  fetchAppointments,
+  highlightedAppointments = []
 }) {
   const timelineRef = useRef(null);
   const [localAppointments, setLocalAppointments] = useState(appointments);
@@ -27,6 +28,28 @@ function Timeline({
     () => localAppointments.filter((a) => isSameDay(a.startTime, selectedDate)),
     [localAppointments, selectedDate, isSameDay]
   );
+  // scroll 
+  useEffect(() => {
+  if (!timelineRef.current || highlightedAppointments.length === 0) return;
+
+  const firstHighlight = localAppointments.find(a =>
+    highlightedAppointments.includes(a.id)
+  );
+
+  if (!firstHighlight) return;
+
+  const start = new Date(firstHighlight.startTime);
+
+  // Compute offset including timeline-grid padding (padding-left is 80px, but top is 0)
+  const top =
+    Math.floor((start.getHours() * 60 + start.getMinutes()) / 30 * slotHeight);
+
+  // Scroll the container to center the appointment
+  timelineRef.current.scrollTo({
+    top: top - timelineRef.current.clientHeight / 2 + slotHeight / 2,
+    behavior: "smooth"
+  });
+}, [highlightedAppointments, localAppointments, slotHeight]);
 
   // Render time slots (clickable)
  const renderSlots = () =>
@@ -55,15 +78,22 @@ function Timeline({
 
   // Render appointment blocks
   const renderAppointments = () =>
-    todayAppointments.map((appointment) => (
+  todayAppointments.map((appointment) => {
+    const isHighlighted = highlightedAppointments.includes(appointment.id);
+
+    return (
       <AppointmentBlock
         key={appointment.id}
         appointment={appointment}
         slotHeight={slotHeight}
         getStatus={getStatus}
         onClick={() => onAppointmentClick(appointment)}
+        className={isHighlighted ? "highlight" : ""}
+        highlight={highlightedAppointments.includes(appointment.id)} 
       />
-    ));
+    );
+  });
+
   // Drag handlers
   const handleDragOver = (e) => e.preventDefault();
 

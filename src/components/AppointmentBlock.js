@@ -1,6 +1,6 @@
 import React from "react";
 
-function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) {
+function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus, highlight = false, className="" }) {
   const start = new Date(appointment.startTime);
   const end = new Date(appointment.endTime);
 
@@ -27,11 +27,15 @@ function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) 
   };
 
   return (
-    <div
+  <div
       draggable
       onDragStart={handleDragStart}
-      className={`appointment-block ${status}`}
-      style={{ top: `${top}px`, height: `${height}px` }}
+      className={`appointment-block ${status} ${highlight ? "highlight" : ""} ${className}`}
+      style={{
+        top: `${top}px`,
+        height: `${height}px`,
+        backgroundColor: appointment.ColorCode || appointment.colorCode || "#1976d2",
+      }}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -42,7 +46,6 @@ function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus }) 
       {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })} -{" "}
       {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })}
     </div>
-  );
-}
+  );}
 
 export default AppointmentBlock;

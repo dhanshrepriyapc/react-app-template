@@ -86,10 +86,15 @@ body[data-theme="dark"] .login-form {
   }
 
   button {
-    background: #1976d2;
-    &:hover {
-      background: #0d47a1;
-    }
+    padding: 0.75rem;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    background-color:#1976d2 ;
   }
 }
 
@@ -295,4 +300,88 @@ body[data-theme="dark"] .page-header {
 body[data-theme="dark"] .date-nav {
   .date-label { color: #90caf9; }
   button { background: #90caf9; color: #1e1e1e; &:hover { background: #64b5f6; } }
+}
+/* Legend styles */
+.color-legend {
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-color); /* adapts automatically */
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.2); /* light mode border */
+}
+
+/* Dark theme overrides */
+body[data-theme="dark"] .legend-item {
+  color: var(--text-color);
+}
+
+body[data-theme="dark"] .legend-dot {
+  border: 1px solid rgba(255, 255, 255, 0.3); /* light border for visibility */
+}
+body[data-theme="dark"] .appointment-item .appt-label {
+  color: #fff;
+}
+body[data-theme="dark"] {
+  .page-header {
+    background: #1e1e1e;
+    border-bottom: 1px solid #333;
+
+    h2 {
+      color: #90caf9; // lighter blue in dark mode
+    }
+
+    .header-right {
+      select.view-selector {
+        background: #2c2c2c;
+        border: 1px solid #555;
+        color: #eee;
+
+        &:hover {
+          border-color: #90caf9;
+        }
+      }
+
+      .search-bar {
+        background: #2c2c2c;
+        border: 1px solid #444;
+        color: #eee;
+
+        input {
+          color: #eee;
+        }
+
+        .search-icon {
+          color: #aaa;
+        }
+
+        &:focus-within {
+          border-color: #90caf9;
+          background: #1e1e1e;
+        }
+      }
+
+      .theme-toggle:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
 }

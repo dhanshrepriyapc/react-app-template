@@ -44,12 +44,12 @@
     padding: 0.75rem;
     border: none;
     border-radius: 8px;
-    background: #1976d2;
-    color: #fff;
+    color: white;
     font-size: 1rem;
+    font-weight: bold;
     cursor: pointer;
     transition: 0.3s;
-
+    background-color:#1976d2 ;
   }
 
   .error {
@@ -61,22 +61,21 @@
     font-size: 0.9rem;
     text-align: center;
     margin-top: 1rem;
-    color: #0c6ccc;
-
     .link-button {
       background: none;
       border: none;
-      color: rgb(1, 97, 1);
+      color: rgb(46, 172, 46);
       font-weight: bold;
       cursor: pointer;
-      text-decoration: underline;
-      padding: 0;
-      font-size: 0.9rem;
     }
-
     .link-button:hover {
-      color: #06b64a;
-      background-color: none;
+      text-decoration: underline;
+      color: rgb(98, 203, 98);
+    }
+    .link-text{
+      color: #84a7cb;
+      font-weight: bold;
+      font-size: 18px;
     }
   }
 }
