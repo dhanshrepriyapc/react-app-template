@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"; 
+import React, { useEffect, useState, useCallback } from "react"; 
 import { Moon, Sun } from "lucide-react";
 import "./App.scss";
 import Sidebar from "./components/Sidebar";
@@ -14,9 +14,7 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [appointments, setAppointments] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [nowPx, setNowPx] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
@@ -47,20 +45,9 @@ function App() {
       }
       if (e.altKey && e.shiftKey) {
         switch (e.key.toLowerCase()) {
-          case "d":
-            e.preventDefault();
-            setCurrentView("day");
-            break;
-          case "w":
-            e.preventDefault();
-            setCurrentView("week");
-            break;
-          case "m":
-            e.preventDefault();
-            setCurrentView("month");
-            break;
-          default:
-            break;
+          case "d": e.preventDefault(); setCurrentView("day"); break;
+          case "w": e.preventDefault(); setCurrentView("week"); break;
+          case "m": e.preventDefault(); setCurrentView("month"); break;
         }
       }
     };
@@ -87,111 +74,112 @@ function App() {
   const isSameDay = (dateStr) =>
     new Date(dateStr).toDateString() === new Date(selectedDate).toDateString();
 
-  const isToday = () =>
-    new Date(selectedDate).toDateString() === new Date().toDateString();
+  const isToday = () => {
+  if (!loggedInUser?.timeZoneId) return false;
+  
+  // Get today's date in user's timezone
+  const now = new Date();
+  const userToday = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+  const selectedDateObj = new Date(selectedDate);
+  
+  return userToday.toDateString() === selectedDateObj.toDateString();
+};
+
 
   const getStatus = (start) => (new Date(start) < new Date() ? "completed" : "upcoming");
 
   const formatPrettyDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-
-  const convertToUserTZ = React.useCallback(
-    (isoStr) => {
-      if (!loggedInUser?.timeZoneId) return isoStr;
-      const date = new Date(isoStr);
-      return new Date(
-        date.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId })
-      ).toISOString();
-    },
-    [loggedInUser]
-  );
-
-  const convertFromUserTZ = (localISO) => {
-    if (!loggedInUser?.timeZoneId) return localISO;
-    const date = new Date(localISO);
-    const tzDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-    return tzDate.toISOString();
-  };
+    new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
   // --- FETCH APPOINTMENTS ---
-  const fetchAppointments = async () => {
-    const token = localStorage.getItem("jwtToken");
-    if (!loggedInUser || !token) return;
+ const fetchAppointments = async () => {
+  const token = localStorage.getItem("jwtToken");
+  if (!loggedInUser || !token) return;
+  try {
+    const response = await fetch(`http://localhost:5169/api/appointments/user`, {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error("Failed to fetch appointments");
+    const data = await response.json();
+    
+    // Backend already returns times in user's timezone, just parse as Date objects
+    const appointments = data.map((appt) => ({
+      ...appt,
+      startTime: new Date(appt.startTime),
+      endTime: new Date(appt.endTime),
+    }));
 
-    try {
-      const response = await fetch(`http://localhost:5169/api/appointments/user`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch appointments");
-      const data = await response.json();
-      const tzAppointments = data.map((appt) => ({
-        ...appt,
-        startTime: convertToUserTZ(appt.startTime),
-        endTime: convertToUserTZ(appt.endTime),
-      }));
-      setAppointments(tzAppointments);
-    } catch (err) {
-      setErrorMessage(err.message);
-    }
-  };
+    setAppointments(appointments);
+  } catch (err) {
+    setErrorMessage(err.message);
+  }
+};
 
   // --- ADD / EDIT ---
-  const handleAddOrEdit = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("jwtToken");
-    if (!token) return;
+ const handleAddOrEdit = async (e) => {
+  e.preventDefault();
+  const token = localStorage.getItem("jwtToken");
+  if (!token || !loggedInUser) return;
 
-    const formData = new FormData(e.target);
+  const formData = new FormData(e.target);
+  const startTime24 = to24Hour(formData.get("start"), formData.get("startPeriod"));
+  const endTime24 = to24Hour(formData.get("end"), formData.get("endPeriod"));
+  const recurrenceMap = { None: 0, Daily: 1, Weekly: 2, Monthly: 3 };
 
-    const startTime24 = to24Hour(formData.get("start"), formData.get("startPeriod"));
-    const endTime24 = to24Hour(formData.get("end"), formData.get("endPeriod"));
+  // Create datetime strings in the format the backend expects
+  const startTimeString = `${selectedDate}T${startTime24}:00`;
+  const endTimeString = `${selectedDate}T${endTime24}:00`;
 
-    const recurrenceMap = { None: 0, Daily: 1, Weekly: 2, Monthly: 3 };
+  // Get recurrence data from form
+  const recurrenceType = formData.get("recurrence") || "None";
+  const recurrenceInterval = formData.get("recurrenceInterval");
+  const recurrenceEndDate = formData.get("recurrenceEndDate");
 
-    const payload = {
-      Title: formData.get("title"),
-      StartTime: new Date(`${selectedDate}T${startTime24}:00`).toISOString(),
-      EndTime: new Date(`${selectedDate}T${endTime24}:00`).toISOString(),
-      Description: formData.get("description") || "",
-      Location: formData.get("location") || "",
-      Type: formData.get("type") || "",
-      ColorCode: formData.get("colorCode") || typeColors[formData.get("type") || "Meeting"],
-      Recurrence: recurrenceMap[formData.get("recurrence")] || 0,
-    };
+  console.log('=== RECURRENCE DEBUG ===');
+  console.log('Recurrence type:', recurrenceType);
+  console.log('Recurrence interval:', recurrenceInterval);
+  console.log('Recurrence end date:', recurrenceEndDate);
 
-    try {
-      const url = editingAppointment
-        ? `http://localhost:5169/api/appointments/user/${editingAppointment.id}`
-        : `http://localhost:5169/api/appointments/user`;
-      const method = editingAppointment ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.message || "Failed to save appointment");
-
-      setShowModal(false);
-      setEditingAppointment(null);
-      setNewSlotTime(null);
-      fetchAppointments();
-    } catch (err) {
-      setErrorMessage(err.message);
-    }
+  const payload = {
+    Title: formData.get("title"),
+    StartTime: startTimeString,
+    EndTime: endTimeString,
+    Description: formData.get("description") || "",
+    Location: formData.get("location") || "",
+    Type: formData.get("type") || "",
+    ColorCode: formData.get("colorCode") || typeColors[formData.get("type") || "Meeting"],
+    Recurrence: recurrenceMap[recurrenceType] || 0,
+    // ADD THESE MISSING FIELDS:
+    RecurrenceInterval: recurrenceInterval ? parseInt(recurrenceInterval) : null,
+    RecurrenceEndDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59` : null,
   };
+
+  console.log('Final payload:', JSON.stringify(payload, null, 2));
+
+  try {
+    const url = editingAppointment
+      ? `http://localhost:5169/api/appointments/user/${editingAppointment.id}`
+      : `http://localhost:5169/api/appointments/user`;
+    const method = editingAppointment ? "PUT" : "POST";
+
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.message || "Failed to save appointment");
+
+    setShowModal(false);
+    setEditingAppointment(null);
+    setNewSlotTime(null);
+    fetchAppointments();
+  } catch (err) {
+    setErrorMessage(err.message);
+  }
+};
+
 
   // --- DELETE ---
   const handleDelete = async () => {
@@ -202,10 +190,7 @@ function App() {
     try {
       const response = await fetch(
         `http://localhost:5169/api/appointments/user/${editingAppointment.id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.ok) throw new Error("Failed to delete appointment");
       setShowModal(false);
@@ -217,43 +202,75 @@ function App() {
   };
 
   // --- FETCH ON LOGIN ---
-  useEffect(() => {
-    if (!loggedInUser) return;
-    let cancelled = false;
-    const fetchForUser = async () => {
-      const token = localStorage.getItem("jwtToken");
-      if (!token) return;
-      try {
-        const res = await fetch(`http://localhost:5169/api/appointments/user`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to fetch appointments");
-        const data = await res.json();
-        const tzAppointments = data.map((appt) => ({
-          ...appt,
-          startTime: convertToUserTZ(appt.startTime),
-          endTime: convertToUserTZ(appt.endTime),
-        }));
-        if (!cancelled) setAppointments(tzAppointments);
-      } catch (err) {
-        if (!cancelled) setErrorMessage(err.message);
-      }
-    };
-    fetchForUser();
-    return () => { cancelled = true; };
-  }, [loggedInUser, convertToUserTZ]);
+useEffect(() => {
+  if (!loggedInUser) return;
+  let cancelled = false;
+  const fetchForUser = async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) return;
+    try {
+      const res = await fetch(`http://localhost:5169/api/appointments/user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch appointments");
+      const data = await res.json();
+      
+      // Backend already handles timezone conversion, just parse dates
+      const appointments = data.map((appt) => ({
+        ...appt,
+        startTime: new Date(appt.startTime),
+        endTime: new Date(appt.endTime),
+      }));
+      
+      if (!cancelled) setAppointments(appointments);
+    } catch (err) {
+      if (!cancelled) setErrorMessage(err.message);
+    }
+  };
+  fetchForUser();
+  return () => { cancelled = true; };
+}, [loggedInUser]); // Remove convertToUserTZ dependency
 
-  // --- NOW LINE ---
-  useEffect(() => {
-    const updateNowLine = () => {
-      const now = new Date();
-      const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
-      setNowPx((minutesSinceMidnight / 30) * SLOT_HEIGHT);
-    };
-    updateNowLine();
-    const interval = setInterval(updateNowLine, 60000);
-    return () => clearInterval(interval);
-  }, []);
+useEffect(() => {
+  if (loggedInUser) {
+    console.log('Logged in user:', loggedInUser);
+    console.log('User timezone:', loggedInUser.timeZoneId);
+    
+    // Also decode and check JWT token
+    const token = localStorage.getItem("jwtToken");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('JWT payload:', payload);
+        console.log('JWT timeZoneId:', payload.timeZoneId);
+      } catch (e) {
+        console.error('Error decoding JWT:', e);
+      }
+    }
+  }
+}, [loggedInUser]);
+
+// --- NOW LINE ---
+useEffect(() => {
+  const updateNowLine = () => {
+    if (!loggedInUser?.timeZoneId) return;
+
+    // Get current time in the logged-in user's timezone
+    const now = new Date();
+    const userTime = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+    
+    console.log('Current time in user timezone:', userTime.toLocaleString());
+    console.log('User timezone:', loggedInUser.timeZoneId);
+    
+    const minutesSinceMidnight = userTime.getHours() * 60 + userTime.getMinutes();
+    setNowPx((minutesSinceMidnight / 30) * SLOT_HEIGHT);
+  };
+
+  updateNowLine();
+  const interval = setInterval(updateNowLine, 60000);
+  return () => clearInterval(interval);
+}, [loggedInUser]); // Add loggedInUser back as dependency
+
 
   // --- LOGIN ---
   if (!loggedIn) {
@@ -373,8 +390,7 @@ function App() {
           onClick={() => {
             setEditingAppointment(null);
             const now = new Date();
-            const minutes = now.getMinutes();
-            const roundedMinutes = minutes < 30 ? 0 : 30;
+            const roundedMinutes = now.getMinutes() < 30 ? 0 : 30;
             const slotTime = new Date(now);
             slotTime.setMinutes(roundedMinutes, 0, 0);
             setNewSlotTime(slotTime);

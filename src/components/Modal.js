@@ -1,18 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-// Helper: convert ISO timestamp to "hh:mm" in 12-hour format
+// Helper functions remain the same...
 const isoTo12HourTime = (iso) => {
   if (!iso) return "";
   const d = new Date(iso);
   let hours = d.getHours();
   const minutes = d.getMinutes();
-  hours = hours % 12 || 12; // 0 becomes 12
+  hours = hours % 12 || 12;
   const hh = String(hours).padStart(2, "0");
   const mm = String(minutes).padStart(2, "0");
   return `${hh}:${mm}`;
 };
 
-// Helper: derive AM/PM from ISO timestamp
 const derivePeriod = (iso) => {
   if (!iso) return "AM";
   return new Date(iso).getHours() >= 12 ? "PM" : "AM";
@@ -27,23 +26,40 @@ function Modal({
   handleDelete,
 }) {
   const isEdit = !!editingAppointment;
+  
+  // Initialize recurrence type properly
+  const [recurrenceType, setRecurrenceType] = useState("None");
 
-  // Hooks must be at the top
-  const [recurrenceType, setRecurrenceType] = useState(
-    isEdit ? editingAppointment.recurrence : "None"
-  );
+  // Reset recurrence type when modal opens/closes or editing changes
+  useEffect(() => {
+    if (showModal) {
+      if (isEdit && editingAppointment?.recurrence !== undefined) {
+        // Map numeric recurrence back to string
+        const recurrenceMap = { 0: "None", 1: "Daily", 2: "Weekly", 3: "Monthly" };
+        setRecurrenceType(recurrenceMap[editingAppointment.recurrence] || "None");
+      } else {
+        setRecurrenceType("None");
+      }
+    }
+  }, [showModal, isEdit, editingAppointment]);
 
   if (!showModal) return null;
 
   const startIso = isEdit
     ? editingAppointment.startTime
     : newSlotTime?.toISOString();
-
   const endIso = isEdit
     ? editingAppointment.endTime
     : newSlotTime
     ? new Date(newSlotTime.getTime() + 30 * 60000).toISOString()
     : null;
+
+  // Format recurrence end date for input
+  const formatRecurrenceEndDate = () => {
+    if (!isEdit || !editingAppointment?.recurrenceEndDate) return "";
+    const date = new Date(editingAppointment.recurrenceEndDate);
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  };
 
   return (
     <div className="modal">
@@ -64,9 +80,9 @@ function Modal({
             const isoField = timeType === "start" ? startIso : endIso;
             const timeValue = isoTo12HourTime(isoField);
             const periodValue = derivePeriod(isoField);
-
             return (
               <div className="time-row" key={timeType}>
+                <label>{timeType === "start" ? "Start Time" : "End Time"}</label>
                 <input
                   type="time"
                   name={timeType}
@@ -86,7 +102,7 @@ function Modal({
           <textarea
             name="description"
             placeholder="Description"
-            defaultValue={isEdit ? editingAppointment.description : ""}
+            defaultValue={isEdit ? editingAppointment.description || "" : ""}
           />
 
           {/* Location */}
@@ -94,7 +110,7 @@ function Modal({
             type="text"
             name="location"
             placeholder="Location"
-            defaultValue={isEdit ? editingAppointment.location : ""}
+            defaultValue={isEdit ? editingAppointment.location || "" : ""}
           />
 
           {/* Attendees */}
@@ -102,13 +118,13 @@ function Modal({
             type="text"
             name="attendees"
             placeholder="Attendees (comma-separated)"
-            defaultValue={isEdit ? editingAppointment.attendees : ""}
+            defaultValue={isEdit ? editingAppointment.attendees || "" : ""}
           />
 
           {/* Type / Category */}
           <select
             name="type"
-            defaultValue={isEdit ? editingAppointment.type : "Meeting"}
+            defaultValue={isEdit ? editingAppointment.type || "Meeting" : "Meeting"}
           >
             <option value="Meeting">Meeting</option>
             <option value="Personal">Personal</option>
@@ -117,6 +133,7 @@ function Modal({
           </select>
 
           {/* Recurrence */}
+          <label>Recurrence</label>
           <select
             name="recurrence"
             value={recurrenceType}
@@ -128,27 +145,34 @@ function Modal({
             <option value="Monthly">Monthly</option>
           </select>
 
+          {/* Recurrence Options */}
           {recurrenceType !== "None" && (
-            <>
+            <div className="recurrence-options">
+              <label>Repeat Every</label>
               <input
                 type="number"
                 name="recurrenceInterval"
                 min={1}
+                max={30}
                 defaultValue={
                   isEdit ? editingAppointment.recurrenceInterval || 1 : 1
                 }
-                placeholder="Recurrence Interval"
+                placeholder="Interval"
               />
+              <span>
+                {recurrenceType === "Daily" && "day(s)"}
+                {recurrenceType === "Weekly" && "week(s)"}
+                {recurrenceType === "Monthly" && "month(s)"}
+              </span>
+
+              <label>End Date</label>
               <input
                 type="date"
                 name="recurrenceEndDate"
-                defaultValue={
-                  isEdit && editingAppointment.recurrenceEndDate
-                    ? editingAppointment.recurrenceEndDate.slice(0, 10)
-                    : ""
-                }
+                defaultValue={formatRecurrenceEndDate()}
+                min={new Date().toISOString().split('T')[0]} // Can't be in the past
               />
-            </>
+            </div>
           )}
 
           {/* Actions */}

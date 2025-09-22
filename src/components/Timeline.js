@@ -18,7 +18,6 @@ function Timeline({
   const timelineRef = useRef(null);
   const [localAppointments, setLocalAppointments] = useState(appointments);
 
-  // Keep local state synced with props
   useEffect(() => {
     setLocalAppointments(appointments);
   }, [appointments]);
@@ -28,31 +27,27 @@ function Timeline({
     () => localAppointments.filter((a) => isSameDay(a.startTime, selectedDate)),
     [localAppointments, selectedDate, isSameDay]
   );
-  // scroll 
+
+  // Scroll to first highlighted appointment
   useEffect(() => {
-  if (!timelineRef.current || highlightedAppointments.length === 0) return;
+    if (!timelineRef.current || highlightedAppointments.length === 0) return;
 
-  const firstHighlight = localAppointments.find(a =>
-    highlightedAppointments.includes(a.id)
-  );
+    const firstHighlight = localAppointments.find(a =>
+      highlightedAppointments.includes(a.id)
+    );
+    if (!firstHighlight) return;
 
-  if (!firstHighlight) return;
+    const start = new Date(firstHighlight.startTime);
+    const top = Math.floor((start.getHours() * 60 + start.getMinutes()) / 30 * slotHeight);
 
-  const start = new Date(firstHighlight.startTime);
+    timelineRef.current.scrollTo({
+      top: top - timelineRef.current.clientHeight / 2 + slotHeight / 2,
+      behavior: "smooth"
+    });
+  }, [highlightedAppointments, localAppointments, slotHeight]);
 
-  // Compute offset including timeline-grid padding (padding-left is 80px, but top is 0)
-  const top =
-    Math.floor((start.getHours() * 60 + start.getMinutes()) / 30 * slotHeight);
-
-  // Scroll the container to center the appointment
-  timelineRef.current.scrollTo({
-    top: top - timelineRef.current.clientHeight / 2 + slotHeight / 2,
-    behavior: "smooth"
-  });
-}, [highlightedAppointments, localAppointments, slotHeight]);
-
-  // Render time slots (clickable)
- const renderSlots = () =>
+  // Render time slots
+  const renderSlots = () =>
     Array.from({ length: 48 }, (_, i) => {
       const hour24 = Math.floor(i / 2);
       const minute = i % 2 === 0 ? 0 : 30;
@@ -78,79 +73,71 @@ function Timeline({
 
   // Render appointment blocks
   const renderAppointments = () =>
-  todayAppointments.map((appointment) => {
-    const isHighlighted = highlightedAppointments.includes(appointment.id);
+    todayAppointments.map((appointment) => {
+      const isHighlighted = highlightedAppointments.includes(appointment.id);
 
-    return (
-      <AppointmentBlock
-        key={appointment.id}
-        appointment={appointment}
-        slotHeight={slotHeight}
-        getStatus={getStatus}
-        onClick={() => onAppointmentClick(appointment)}
-        className={isHighlighted ? "highlight" : ""}
-        highlight={highlightedAppointments.includes(appointment.id)} 
-      />
-    );
-  });
+      return (
+        <AppointmentBlock
+          key={appointment.id}
+          appointment={appointment}
+          slotHeight={slotHeight}
+          getStatus={getStatus}
+          onClick={() => onAppointmentClick(appointment)}
+          className={isHighlighted ? "highlight" : ""}
+          highlight={isHighlighted}
+        />
+      );
+    });
 
   // Drag handlers
   const handleDragOver = (e) => e.preventDefault();
 
   const handleDrop = async (e) => {
-  e.preventDefault();
-  const apptId = e.dataTransfer.getData("text/plain");
-  if (!apptId) return;
+    e.preventDefault();
+    const apptId = e.dataTransfer.getData("text/plain");
+    if (!apptId) return;
 
-  const containerRect = timelineRef.current.getBoundingClientRect();
-  const offsetY =
-    e.clientY - containerRect.top + timelineRef.current.scrollTop;
+    const containerRect = timelineRef.current.getBoundingClientRect();
+    const offsetY = e.clientY - containerRect.top + timelineRef.current.scrollTop;
 
-  // Snap to nearest 30 mins
-  const totalMinutes = Math.round(((offsetY / slotHeight) * 30) / 30) * 30;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+    const totalMinutes = Math.round(((offsetY / slotHeight) * 30) / 30) * 30;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
 
-  const appt = todayAppointments.find((a) => a.id.toString() === apptId);
-  if (!appt) return;
+    const appt = todayAppointments.find((a) => a.id.toString() === apptId);
+    if (!appt) return;
 
-  const duration =
-    (new Date(appt.endTime) - new Date(appt.startTime)) / (1000 * 60);
+    const duration = (new Date(appt.endTime) - new Date(appt.startTime)) / (1000 * 60);
 
-  // 🔑 Use same format as App.js (local IST string, not UTC)
-  const pad = (n) => String(n).padStart(2, "0");
-  const newStart = `${selectedDate}T${pad(hours)}:${pad(minutes)}:00`;
-  const newEndDate = new Date(new Date(newStart).getTime() + duration * 60000);
-  const newEnd = `${selectedDate}T${pad(newEndDate.getHours())}:${pad(newEndDate.getMinutes())}:00`;
+    const pad = (n) => String(n).padStart(2, "0");
 
-  // Instant UI update
-  setLocalAppointments((prev) =>
-    prev.map((a) =>
-      a.id === appt.id
-        ? { ...a, startTime: newStart, endTime: newEnd }
-        : a
-    )
-  );
+    // Convert drop position to user's timezone
+    const localStart = new Date(selectedDate);
+    localStart.setHours(hours, minutes, 0, 0);
 
-  // Backend update (same as App.js add/edit)
-  fetch(
-    `http://localhost:5169/api/appointments/${appt.id}?userId=${loggedInUser.id}`,
-    {
+    const isoStartUTC = new Date(
+      localStart.toLocaleString("en-US", { timeZone: "UTC" })
+    ).toISOString();
+
+    const newEndUTC = new Date(new Date(isoStartUTC).getTime() + duration * 60000).toISOString();
+
+    setLocalAppointments((prev) =>
+      prev.map((a) =>
+        a.id === appt.id
+          ? { ...a, startTime: localStart, endTime: new Date(localStart.getTime() + duration * 60000) }
+          : a
+      )
+    );
+
+    // Update backend
+    fetch(`http://localhost:5169/api/appointments/${appt.id}?userId=${loggedInUser.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...appt,
-        startTime: newStart,
-        endTime: newEnd,
-      }),
-    }
-  )
-    .then(() => {
-      // optional: re-sync from backend like App.js does
-      if (typeof fetchAppointments === "function") fetchAppointments();
+      body: JSON.stringify({ ...appt, startTime: isoStartUTC, endTime: newEndUTC }),
     })
-    .catch(console.error);
-};
+      .then(() => fetchAppointments && fetchAppointments())
+      .catch(console.error);
+  };
 
   return (
     <div className="timeline">

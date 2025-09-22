@@ -10,48 +10,54 @@ function Login({ onLogin }) {
   const [isRegister, setIsRegister] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  try {
+    const url = isRegister
+      ? "http://localhost:5169/api/users/register"
+      : "http://localhost:5169/api/users/login";
+    const body = isRegister
+      ? { username, password, timeZoneId }
+      : { username, password };
 
-    try {
-      const url = isRegister
-        ? "http://localhost:5169/api/users/register"
-        : "http://localhost:5169/api/users/login";
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
-      const body = isRegister
-        ? { username, password, timeZoneId }
-        : { username, password };
+    if (!response.ok) {
+      const err = await response.json();
+      setError(err.message || "Something went wrong");
+      return;
+    }
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        setError(err.message || "Something went wrong");
-        return;
-      }
-
-      const data = await response.json();
-      if (isRegister) {
+    const data = await response.json();
+    
+    if (isRegister) {
       // Registration succeeded
       setError(""); // clear previous errors
-      alert("Registration successful! You can now login."); 
+      alert("Registration successful! You can now login.");
       return; // stop further processing
     }
-      // Save JWT token for login
-      if (!isRegister && data.token) {
-        localStorage.setItem("jwtToken", data.token);
-      }
 
-      // Pass user info and token to App
-      onLogin({ id: data.user.id, username: data.user.username }, data.token);
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Try again.");
+    // Save JWT token for login
+    if (!isRegister && data.token) {
+      localStorage.setItem("jwtToken", data.token);
     }
-  };
+
+    // Pass complete user info including timeZoneId to App
+    onLogin({
+      id: data.user.id,
+      username: data.user.username,
+      timeZoneId: data.user.timeZoneId // Add this line!
+    }, data.token);
+
+  } catch (err) {
+    console.error(err);
+    setError("Something went wrong. Try again.");
+  }
+};
+
 
   return (
     <div className="login-container">
