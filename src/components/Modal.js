@@ -82,7 +82,7 @@ function Modal({
             const periodValue = derivePeriod(isoField);
             return (
               <div className="time-row" key={timeType}>
-                <label>{timeType === "start" ? "Start Time" : "End Time"}</label>
+                <label className="time-label">{timeType === "start" ? "Start Time" : "End Time"}</label>
                 <input
                   type="time"
                   name={timeType}
@@ -99,7 +99,7 @@ function Modal({
           })}
 
           {/* Description */}
-          <textarea
+          <input
             name="description"
             placeholder="Description"
             defaultValue={isEdit ? editingAppointment.description || "" : ""}
@@ -164,8 +164,9 @@ function Modal({
                 {recurrenceType === "Weekly" && "week(s)"}
                 {recurrenceType === "Monthly" && "month(s)"}
               </span>
-
+              <div>
               <label>End Date</label>
+              </div>
               <input
                 type="date"
                 name="recurrenceEndDate"
