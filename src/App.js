@@ -37,14 +37,25 @@ function App() {
   useEffect(() => {
     const checkExistingAuth = async () => {
       const token = localStorage.getItem("jwtToken");
+      const savedUser = localStorage.getItem("userData"); // Add this line
       
       if (!token) {
         setIsLoading(false);
         return;
       }
-
+      
       try {
-        // Decode JWT to get user info
+        // First, try to use saved user data if available
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          console.log('Using saved user data:', userData);
+          setLoggedIn(true);
+          setLoggedInUser(userData);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Fallback to JWT decoding if no saved user data
         const payload = JSON.parse(atob(token.split('.')[1]));
         
         // Check if token is expired
@@ -52,37 +63,46 @@ function App() {
         if (payload.exp < currentTime) {
           console.log('Token expired, removing');
           localStorage.removeItem("jwtToken");
+          localStorage.removeItem("userData"); // Clean up user data too
           setIsLoading(false);
           return;
         }
-
+        
         // Token is valid, log user in using JWT data
         console.log('Valid token found, logging in user');
-        setLoggedIn(true);
-        setLoggedInUser({
+        const userData = {
           id: payload.sub || payload.userId || payload.id,
           username: payload.username,
           firstName: payload.firstName,
           lastName: payload.lastName,
           timeZoneId: payload.timeZoneId
-        });
-
+        };
+        
+        setLoggedIn(true);
+        setLoggedInUser(userData);
+        
+        // Save user data to localStorage for future refreshes
+        localStorage.setItem("userData", JSON.stringify(userData));
+        
       } catch (error) {
         console.error('Error parsing token:', error);
         localStorage.removeItem("jwtToken");
+        localStorage.removeItem("userData");
       } finally {
         setIsLoading(false);
       }
     };
-
+    
     checkExistingAuth();
   }, []);
 
-  // --- LOGOUT FUNCTION ---
+
+    // --- LOGOUT FUNCTION ---
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       console.log('User confirmed logout');
       localStorage.removeItem("jwtToken");
+      localStorage.removeItem("userData"); 
       setLoggedIn(false);
       setLoggedInUser(null);
       setAppointments([]);
@@ -350,6 +370,8 @@ function App() {
       <Login
         onLogin={(user, token) => {
           if (token) localStorage.setItem("jwtToken", token);
+          // Save user data to localStorage
+          localStorage.setItem("userData", JSON.stringify(user));
           setLoggedIn(true);
           setLoggedInUser(user);
         }}
