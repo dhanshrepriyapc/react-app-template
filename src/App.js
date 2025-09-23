@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react"; 
+import React, { useEffect, useState, useCallback } from "react";
 import { Moon, Sun } from "lucide-react";
 import "./App.scss";
 import Sidebar from "./components/Sidebar";
@@ -13,6 +13,7 @@ import SearchBar from "./components/SearchBar";
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [nowPx, setNowPx] = useState(0);
@@ -21,9 +22,7 @@ function App() {
   const [newSlotTime, setNewSlotTime] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [highlightedAppointments, setHighlightedAppointments] = useState([]);
-
   const SLOT_HEIGHT = 80;
-
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
   const [currentView, setCurrentView] = useState("day");
 
@@ -32,6 +31,89 @@ function App() {
     Personal: "#0a560eff",
     Deadline: "#a80e0eff",
     "Follow-up": "#646b05ff",
+  };
+
+  // --- AUTO-LOGIN ON APP START ---
+  useEffect(() => {
+    const checkExistingAuth = async () => {
+      const token = localStorage.getItem("jwtToken");
+      
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Decode JWT to get user info
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        
+        // Check if token is expired
+        const currentTime = Date.now() / 1000;
+        if (payload.exp < currentTime) {
+          console.log('Token expired, removing');
+          localStorage.removeItem("jwtToken");
+          setIsLoading(false);
+          return;
+        }
+
+        // Token is valid, log user in using JWT data
+        console.log('Valid token found, logging in user');
+        setLoggedIn(true);
+        setLoggedInUser({
+          id: payload.sub || payload.userId || payload.id,
+          username: payload.username,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          timeZoneId: payload.timeZoneId
+        });
+
+        // Optional: Try to validate with backend, but don't fail if it doesn't work
+        try {
+          const response = await fetch('http://localhost:5169/api/users/validate', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            // Update with fresh data from backend
+            setLoggedInUser({
+              id: userData.id,
+              username: userData.username,
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              timeZoneId: userData.timeZoneId
+            });
+            console.log('Updated user data from backend');
+          }
+        } catch (validationError) {
+          // Validation failed, but we'll continue with JWT data
+          console.log('Backend validation failed, using JWT data:', validationError.message);
+        }
+
+      } catch (error) {
+        console.error('Error parsing token:', error);
+        localStorage.removeItem("jwtToken");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkExistingAuth();
+  }, []);
+
+  // --- LOGOUT FUNCTION ---
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      console.log('User confirmed logout');
+      localStorage.removeItem("jwtToken");
+      setLoggedIn(false);
+      setLoggedInUser(null);
+      setAppointments([]);
+    }
   };
 
   // --- SHORTCUTS ---
@@ -75,16 +157,12 @@ function App() {
     new Date(dateStr).toDateString() === new Date(selectedDate).toDateString();
 
   const isToday = () => {
-  if (!loggedInUser?.timeZoneId) return false;
-  
-  // Get today's date in user's timezone
-  const now = new Date();
-  const userToday = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
-  const selectedDateObj = new Date(selectedDate);
-  
-  return userToday.toDateString() === selectedDateObj.toDateString();
-};
-
+    if (!loggedInUser?.timeZoneId) return false;
+    const now = new Date();
+    const userToday = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+    const selectedDateObj = new Date(selectedDate);
+    return userToday.toDateString() === selectedDateObj.toDateString();
+  };
 
   const getStatus = (start) => (new Date(start) < new Date() ? "completed" : "upcoming");
 
@@ -92,93 +170,97 @@ function App() {
     new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
   // --- FETCH APPOINTMENTS ---
- const fetchAppointments = async () => {
-  const token = localStorage.getItem("jwtToken");
-  if (!loggedInUser || !token) return;
-  try {
-    const response = await fetch(`http://localhost:5169/api/appointments/user`, {
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) throw new Error("Failed to fetch appointments");
-    const data = await response.json();
+  const fetchAppointments = async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!loggedInUser || !token) return;
     
-    // Backend already returns times in user's timezone, just parse as Date objects
-    const appointments = data.map((appt) => ({
-      ...appt,
-      startTime: new Date(appt.startTime),
-      endTime: new Date(appt.endTime),
-    }));
-
-    setAppointments(appointments);
-  } catch (err) {
-    setErrorMessage(err.message);
-  }
-};
-
-  // --- ADD / EDIT ---
- const handleAddOrEdit = async (e) => {
-  e.preventDefault();
-  const token = localStorage.getItem("jwtToken");
-  if (!token || !loggedInUser) return;
-
-  const formData = new FormData(e.target);
-  const startTime24 = to24Hour(formData.get("start"), formData.get("startPeriod"));
-  const endTime24 = to24Hour(formData.get("end"), formData.get("endPeriod"));
-  const recurrenceMap = { None: 0, Daily: 1, Weekly: 2, Monthly: 3 };
-
-  // Create datetime strings in the format the backend expects
-  const startTimeString = `${selectedDate}T${startTime24}:00`;
-  const endTimeString = `${selectedDate}T${endTime24}:00`;
-
-  // Get recurrence data from form
-  const recurrenceType = formData.get("recurrence") || "None";
-  const recurrenceInterval = formData.get("recurrenceInterval");
-  const recurrenceEndDate = formData.get("recurrenceEndDate");
-
-  console.log('=== RECURRENCE DEBUG ===');
-  console.log('Recurrence type:', recurrenceType);
-  console.log('Recurrence interval:', recurrenceInterval);
-  console.log('Recurrence end date:', recurrenceEndDate);
-
-  const payload = {
-    Title: formData.get("title"),
-    StartTime: startTimeString,
-    EndTime: endTimeString,
-    Description: formData.get("description") || "",
-    Location: formData.get("location") || "",
-    Type: formData.get("type") || "",
-    ColorCode: formData.get("colorCode") || typeColors[formData.get("type") || "Meeting"],
-    Recurrence: recurrenceMap[recurrenceType] || 0,
-    // ADD THESE MISSING FIELDS:
-    RecurrenceInterval: recurrenceInterval ? parseInt(recurrenceInterval) : null,
-    RecurrenceEndDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59` : null,
+    try {
+      const response = await fetch(`http://localhost:5169/api/appointments/user`, {
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('401 error in fetchAppointments - token may be expired');
+          handleLogout();
+          return;
+        }
+        throw new Error("Failed to fetch appointments");
+      }
+      
+      const data = await response.json();
+      const appointments = data.map((appt) => ({
+        ...appt,
+        startTime: new Date(appt.startTime),
+        endTime: new Date(appt.endTime),
+      }));
+      setAppointments(appointments);
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+      setErrorMessage(err.message);
+    }
   };
 
-  console.log('Final payload:', JSON.stringify(payload, null, 2));
+  // --- ADD / EDIT ---
+  const handleAddOrEdit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("jwtToken");
+    if (!token || !loggedInUser) return;
 
-  try {
-    const url = editingAppointment
-      ? `http://localhost:5169/api/appointments/user/${editingAppointment.id}`
-      : `http://localhost:5169/api/appointments/user`;
-    const method = editingAppointment ? "PUT" : "POST";
+    const formData = new FormData(e.target);
+    const startTime24 = to24Hour(formData.get("start"), formData.get("startPeriod"));
+    const endTime24 = to24Hour(formData.get("end"), formData.get("endPeriod"));
+    const recurrenceMap = { None: 0, Daily: 1, Weekly: 2, Monthly: 3 };
 
-    const response = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(payload),
-    });
+    const startTimeString = `${selectedDate}T${startTime24}:00`;
+    const endTimeString = `${selectedDate}T${endTime24}:00`;
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data?.message || "Failed to save appointment");
+    const recurrenceType = formData.get("recurrence") || "None";
+    const recurrenceInterval = formData.get("recurrenceInterval");
+    const recurrenceEndDate = formData.get("recurrenceEndDate");
 
-    setShowModal(false);
-    setEditingAppointment(null);
-    setNewSlotTime(null);
-    fetchAppointments();
-  } catch (err) {
-    setErrorMessage(err.message);
-  }
-};
+    const payload = {
+      Title: formData.get("title"),
+      StartTime: startTimeString,
+      EndTime: endTimeString,
+      Description: formData.get("description") || "",
+      Location: formData.get("location") || "",
+      Type: formData.get("type") || "",
+      ColorCode: formData.get("colorCode") || typeColors[formData.get("type") || "Meeting"],
+      Recurrence: recurrenceMap[recurrenceType] || 0,
+      RecurrenceInterval: recurrenceInterval ? parseInt(recurrenceInterval) : null,
+      RecurrenceEndDate: recurrenceEndDate ? `${recurrenceEndDate}T23:59:59` : null,
+    };
+
+    try {
+      const url = editingAppointment
+        ? `http://localhost:5169/api/appointments/user/${editingAppointment.id}`
+        : `http://localhost:5169/api/appointments/user`;
+      const method = editingAppointment ? "PUT" : "POST";
+      
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
+        const data = await response.json();
+        throw new Error(data?.message || "Failed to save appointment");
+      }
+
+      setShowModal(false);
+      setEditingAppointment(null);
+      setNewSlotTime(null);
+      fetchAppointments();
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
 
   // --- DELETE ---
   const handleDelete = async () => {
@@ -191,7 +273,15 @@ function App() {
         `http://localhost:5169/api/appointments/user/${editingAppointment.id}`,
         { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!response.ok) throw new Error("Failed to delete appointment");
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
+        throw new Error("Failed to delete appointment");
+      }
+      
       setShowModal(false);
       setEditingAppointment(null);
       fetchAppointments();
@@ -201,75 +291,71 @@ function App() {
   };
 
   // --- FETCH ON LOGIN ---
-useEffect(() => {
-  if (!loggedInUser) return;
-  let cancelled = false;
-  const fetchForUser = async () => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) return;
-    try {
-      const res = await fetch(`http://localhost:5169/api/appointments/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch appointments");
-      const data = await res.json();
-      
-      // Backend already handles timezone conversion, just parse dates
-      const appointments = data.map((appt) => ({
-        ...appt,
-        startTime: new Date(appt.startTime),
-        endTime: new Date(appt.endTime),
-      }));
-      
-      if (!cancelled) setAppointments(appointments);
-    } catch (err) {
-      if (!cancelled) setErrorMessage(err.message);
-    }
-  };
-  fetchForUser();
-  return () => { cancelled = true; };
-}, [loggedInUser]); // Remove convertToUserTZ dependency
-
-useEffect(() => {
-  if (loggedInUser) {
-    console.log('Logged in user:', loggedInUser);
-    console.log('User timezone:', loggedInUser.timeZoneId);
+  useEffect(() => {
+    if (!loggedInUser) return;
+    let cancelled = false;
     
-    // Also decode and check JWT token
-    const token = localStorage.getItem("jwtToken");
-    if (token) {
+    const fetchForUser = async () => {
+      const token = localStorage.getItem("jwtToken");
+      if (!token) return;
+      
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('JWT payload:', payload);
-        console.log('JWT timeZoneId:', payload.timeZoneId);
-      } catch (e) {
-        console.error('Error decoding JWT:', e);
+        const res = await fetch(`http://localhost:5169/api/appointments/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        if (!res.ok) {
+          if (res.status === 401) {
+            console.log('401 error in fetchForUser - token may be expired');
+            handleLogout();
+            return;
+          }
+          throw new Error("Failed to fetch appointments");
+        }
+        
+        const data = await res.json();
+        const appointments = data.map((appt) => ({
+          ...appt,
+          startTime: new Date(appt.startTime),
+          endTime: new Date(appt.endTime),
+        }));
+        
+        if (!cancelled) setAppointments(appointments);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error in fetchForUser:', err);
+          setErrorMessage(err.message);
+        }
       }
-    }
+    };
+    
+    fetchForUser();
+    return () => { cancelled = true; };
+  }, [loggedInUser]);
+
+  // --- NOW LINE ---
+  useEffect(() => {
+    const updateNowLine = () => {
+      if (!loggedInUser?.timeZoneId) return;
+      const now = new Date();
+      const userTime = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+      const minutesSinceMidnight = userTime.getHours() * 60 + userTime.getMinutes();
+      setNowPx((minutesSinceMidnight / 30) * SLOT_HEIGHT);
+    };
+    
+    updateNowLine();
+    const interval = setInterval(updateNowLine, 60000);
+    return () => clearInterval(interval);
+  }, [loggedInUser]);
+
+  // --- LOADING STATE ---
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner">Loading...</div>
+      </div>
+    );
   }
-}, [loggedInUser]);
-
-// --- NOW LINE ---
-useEffect(() => {
-  const updateNowLine = () => {
-    if (!loggedInUser?.timeZoneId) return;
-
-    // Get current time in the logged-in user's timezone
-    const now = new Date();
-    const userTime = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
-    
-    console.log('Current time in user timezone:', userTime.toLocaleString());
-    console.log('User timezone:', loggedInUser.timeZoneId);
-    
-    const minutesSinceMidnight = userTime.getHours() * 60 + userTime.getMinutes();
-    setNowPx((minutesSinceMidnight / 30) * SLOT_HEIGHT);
-  };
-
-  updateNowLine();
-  const interval = setInterval(updateNowLine, 60000);
-  return () => clearInterval(interval);
-}, [loggedInUser]); // Add loggedInUser back as dependency
-
 
   // --- LOGIN ---
   if (!loggedIn) {
@@ -279,7 +365,6 @@ useEffect(() => {
           if (token) localStorage.setItem("jwtToken", token);
           setLoggedIn(true);
           setLoggedInUser(user);
-          fetchAppointments();
         }}
       />
     );
@@ -349,12 +434,11 @@ useEffect(() => {
         getStatus={getStatus}
         currentView={currentView}
         loggedInUser={loggedInUser}
+        onLogout={handleLogout}
       />
-
       <div className="main-content">
         <div className="page-header">
           <h2>{formatPrettyDate(selectedDate)}</h2>
-
           <div className="header-right">
             <SearchBar
               onResults={(results) => {
@@ -362,7 +446,6 @@ useEffect(() => {
                 setHighlightedAppointments(ids);
               }}
             />
-
             <select
               className="view-selector"
               value={currentView}
@@ -372,7 +455,6 @@ useEffect(() => {
               <option value="week">Week</option>
               <option value="month">Month</option>
             </select>
-
             <div
               className="theme-toggle"
               onClick={toggleTheme}
@@ -380,11 +462,16 @@ useEffect(() => {
             >
               {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
             </div>
+            <button
+              className="logout-btn"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              Logout
+            </button>
           </div>
         </div>
-
         {renderView()}
-
         <button
           className="add-btn"
           onClick={() => {
@@ -400,7 +487,6 @@ useEffect(() => {
           +
         </button>
       </div>
-
       <Modal
         showModal={showModal}
         setShowModal={setShowModal}
@@ -409,7 +495,6 @@ useEffect(() => {
         handleAddOrEdit={handleAddOrEdit}
         handleDelete={handleDelete}
       />
-
       <ErrorModal message={errorMessage} onClose={() => setErrorMessage(null)} />
     </div>
   );

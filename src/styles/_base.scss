@@ -55,6 +55,7 @@
       &:hover {
         border-color: #1976d2;
       }
+      
     }
 
     .theme-toggle {
@@ -142,5 +143,35 @@ body[data-theme="dark"] {
       border-color: #90caf9;
       background: #1e1e1e;
     }
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: var(--bg-primary, #f5f5f5);
+}
+
+.loading-spinner {
+  font-size: 18px;
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.logout-btn {
+  background: #d32f2f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s ease;
+  margin-left: 8px;
+
+  &:hover {
+    background: #b71c1c;
   }
 }

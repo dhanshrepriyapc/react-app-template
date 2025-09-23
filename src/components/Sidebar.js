@@ -67,6 +67,7 @@ function Sidebar({
               {loggedInUser && (
                 <div className="user-greeting">
                   <p>Welcome, {loggedInUser.firstName}!</p>
+                  <p className="timezone-text">{loggedInUser.timeZoneId}</p>
                 </div>
               )}
             </div>

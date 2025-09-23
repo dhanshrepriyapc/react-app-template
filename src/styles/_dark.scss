@@ -390,3 +390,12 @@ body[data-theme="dark"] {
     }
   }
 }
+[data-theme="dark"] {
+  .loading-container {
+    background: var(--bg-primary, #1a1a1a);
+  }
+  
+  .loading-spinner {
+    color: #64b5f6;
+  }
+}

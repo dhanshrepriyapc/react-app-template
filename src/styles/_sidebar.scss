@@ -108,7 +108,6 @@
       .time {
         font-size: 12px;
         font-weight: 600;
-        color: #3f51b5;
       }
 
       .title {
@@ -144,6 +143,13 @@
       color: #ffffff;
       font-weight: 500;
     }
+    .timezone-text {
+    margin: 2px 0 0 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+    opacity: 0.9;
+  }
   } 
 }
 
