@@ -137,7 +137,21 @@ function App() {
     return userToday.toDateString() === selectedDateObj.toDateString();
   };
 
-  const getStatus = (start) => (new Date(start) < new Date() ? "completed" : "upcoming");
+  // Replace the existing getStatus function with this timezone-aware version
+  const getStatus = (start) => {
+    if (!loggedInUser?.timeZoneId) {
+      return new Date(start) < new Date() ? "completed" : "upcoming";
+    }
+    
+    // Get current time in user's timezone
+    const now = new Date();
+    const userNow = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+    
+    // Convert appointment start time for comparison
+    const appointmentTime = new Date(start);
+    
+    return appointmentTime > userNow ? "upcoming" : "completed";
+  };
 
   const formatPrettyDate = (dateStr) =>
     new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });

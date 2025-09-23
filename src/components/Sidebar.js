@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import DateNav from "./DateNav";
 
-function Sidebar({ 
-  appointments, 
-  selectedDate, 
-  setSelectedDate, 
-  isSameDay, 
-  getStatus, 
+function Sidebar({
+  appointments,
+  selectedDate,
+  setSelectedDate,
+  isSameDay,
+  getStatus,
   currentView,
   loggedInUser // Add this prop
 }) {
@@ -35,8 +35,25 @@ function Sidebar({
     }
   };
 
+  // Fix: Create a timezone-aware status checker
+  const getStatusForUserTimezone = (startTime) => {
+    if (!loggedInUser?.timeZoneId) {
+      return getStatus(startTime); // fallback to original logic
+    }
+    
+    // Get current time in user's timezone
+    const now = new Date();
+    const userNow = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+    
+    // Convert appointment start time to user's timezone for comparison
+    const appointmentTime = new Date(startTime);
+    
+    return appointmentTime > userNow ? "upcoming" : "completed";
+  };
+
+  // Fix: Use timezone-aware filtering
   const upcomingAppointments = appointments.filter(
-    (a) => isSameDay(a.startTime, selectedDate) && getStatus(a.startTime) === "upcoming"
+    (a) => isSameDay(a.startTime, selectedDate) && getStatusForUserTimezone(a.startTime) === "upcoming"
   );
 
   return (
@@ -46,7 +63,6 @@ function Sidebar({
           ☰
         </button>
       )}
-
       <aside
         className={`sidebar ${
           windowWidth > 784 ? (isCollapsed ? "closed" : "") : isMobileOpen ? "open" : ""
@@ -57,7 +73,6 @@ function Sidebar({
             {isCollapsed ? "»" : "«"}
           </button>
         )}
-
         {(windowWidth <= 784 ? isMobileOpen : !isCollapsed) && (
           <div className="sidebar-content">
             <div className="sidebar-header">
@@ -71,7 +86,7 @@ function Sidebar({
                 </div>
               )}
             </div>
-            
+                       
             <div className="sidebar-date">
               <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} currentView={currentView} />
             </div>
@@ -101,6 +116,7 @@ function Sidebar({
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: true,
+                        timeZone: loggedInUser?.timeZoneId // Fix: Display time in user's timezone
                       })}
                     </div>
                     <div className="appt-title">{a.title}</div>
@@ -120,7 +136,6 @@ function Sidebar({
           </div>
         )}
       </aside>
-
       {windowWidth <= 784 && (
         <div
           className={`sidebar-overlay ${isMobileOpen ? "active" : ""}`}
