@@ -67,33 +67,6 @@ function App() {
           timeZoneId: payload.timeZoneId
         });
 
-        // Optional: Try to validate with backend, but don't fail if it doesn't work
-        try {
-          const response = await fetch('http://localhost:5169/api/users/validate', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const userData = await response.json();
-            // Update with fresh data from backend
-            setLoggedInUser({
-              id: userData.id,
-              username: userData.username,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              timeZoneId: userData.timeZoneId
-            });
-            console.log('Updated user data from backend');
-          }
-        } catch (validationError) {
-          // Validation failed, but we'll continue with JWT data
-          console.log('Backend validation failed, using JWT data:', validationError.message);
-        }
-
       } catch (error) {
         console.error('Error parsing token:', error);
         localStorage.removeItem("jwtToken");
