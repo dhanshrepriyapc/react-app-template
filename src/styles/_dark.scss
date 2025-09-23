@@ -96,6 +96,11 @@ body[data-theme="dark"] .login-form {
     transition: 0.3s;
     background-color:#1976d2 ;
   }
+  select {
+    background: var(--input-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
 }
 
 /* Modal */

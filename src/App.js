@@ -180,7 +180,6 @@ function App() {
   }
 };
 
-
   // --- DELETE ---
   const handleDelete = async () => {
     if (!editingAppointment) return;
@@ -349,6 +348,7 @@ useEffect(() => {
         isSameDay={isSameDay}
         getStatus={getStatus}
         currentView={currentView}
+        loggedInUser={loggedInUser}
       />
 
       <div className="main-content">

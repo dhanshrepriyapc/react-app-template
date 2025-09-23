@@ -3,98 +3,128 @@ import React, { useState } from "react";
 function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [timeZoneId, setTimeZoneId] = useState(
     Intl.DateTimeFormat().resolvedOptions().timeZone
-  ); // default to browser timezone
+  );
   const [error, setError] = useState("");
   const [isRegister, setIsRegister] = useState(false);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const url = isRegister
-      ? "http://localhost:5169/api/users/register"
-      : "http://localhost:5169/api/users/login";
-    const body = isRegister
-      ? { username, password, timeZoneId }
-      : { username, password };
+    e.preventDefault();
+    try {
+      const url = isRegister
+        ? "http://localhost:5169/api/users/register"
+        : "http://localhost:5169/api/users/login";
+      const body = isRegister
+        ? { username, password, firstName, lastName, timeZoneId }
+        : { username, password };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (!response.ok) {
-      const err = await response.json();
-      setError(err.message || "Something went wrong");
-      return;
+      if (!response.ok) {
+        const err = await response.json();
+        setError(err.message || "Something went wrong");
+        return;
+      }
+
+      const data = await response.json();
+
+      if (isRegister) {
+        setError("");
+        alert("Registration successful! You can now login.");
+        setUsername("");
+        setPassword("");
+        setFirstName("");
+        setLastName("");
+        setTimeZoneId(Intl.DateTimeFormat().resolvedOptions().timeZone);
+        setIsRegister(false);
+        return;
+      }
+
+      // Save JWT token for login
+      if (!isRegister && data.token) {
+        localStorage.setItem("jwtToken", data.token);
+      }
+
+      // Pass complete user info including timeZoneId to App
+      onLogin({
+        id: data.user.id,
+        username: data.user.username,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        timeZoneId: data.user.timeZoneId
+      }, data.token);
+
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Try again.");
     }
-
-    const data = await response.json();
-    
-    if (isRegister) {
-      // Registration succeeded
-      setError(""); // clear previous errors
-      alert("Registration successful! You can now login.");
-      return; // stop further processing
-    }
-
-    // Save JWT token for login
-    if (!isRegister && data.token) {
-      localStorage.setItem("jwtToken", data.token);
-    }
-
-    // Pass complete user info including timeZoneId to App
-    onLogin({
-      id: data.user.id,
-      username: data.user.username,
-      timeZoneId: data.user.timeZoneId // Add this line!
-    }, data.token);
-
-  } catch (err) {
-    console.error(err);
-    setError("Something went wrong. Try again.");
-  }
-};
-
+  };
 
   return (
     <div className="login-container">
       <h1 className="login-title">Appointments</h1>
       <form className="login-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className={`form-row ${isRegister ? "two-cols" : ""}`}>
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
         {isRegister && (
-          <select
-            value={timeZoneId}
-            onChange={(e) => setTimeZoneId(e.target.value)}
-          >
-            {Intl.supportedValuesOf("timeZone").map((tz) => (
-              <option key={tz} value={tz}>
-                {tz}
-              </option>
-            ))}
-          </select>
+          <>
+            <div className="form-row two-cols">
+              <input
+                type="text"
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
+            <select
+              value={timeZoneId}
+              onChange={(e) => setTimeZoneId(e.target.value)}
+            >
+              {Intl.supportedValuesOf("timeZone").map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+          </>
         )}
-        <button type="submit">{isRegister ? "Register" : "Login"}</button>
+        <button type="submit">
+          {isRegister ? "Register" : "Login"}
+        </button>
         {error && <p className="error-message">{error}</p>}
-        <p className="register-link">
+        <div className="register-link">
           {isRegister ? (
             <>
-              Already have an account?{" "}
+             <p className="link-text"> Already have an account?</p>{" "}
               <button
                 type="button"
                 className="link-button"
@@ -108,7 +138,7 @@ function Login({ onLogin }) {
             </>
           ) : (
             <>
-              <p className="link-text">Don’t have an account?</p>
+              <p className="link-text">Don't have an account?</p>
               <button
                 type="button"
                 className="link-button"
@@ -121,7 +151,7 @@ function Login({ onLogin }) {
               </button>
             </>
           )}
-        </p>
+        </div>
       </form>
     </div>
   );

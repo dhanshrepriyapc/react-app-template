@@ -50,6 +50,7 @@
       font-size: 14px;
       opacity: 0.85;
     }
+
   }
 
   .sidebar-date {
@@ -132,6 +133,18 @@
 
     }
   }
+  .user-greeting {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    
+    p {
+      margin: 0;
+      font-size: 18px;
+      color: #ffffff;
+      font-weight: 500;
+    }
+  } 
 }
 
 .date-nav {

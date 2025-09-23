@@ -27,12 +27,29 @@
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   width: 300px;
+  select {
+  padding: 0.75rem;               
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;                
+  height: 44px;                   
+  background: #fff;
+  box-sizing: border-box;
+  width: 100%;                    
+}
+
+.login-form select:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 4px rgba(25, 118, 210, 0.5);
+}
 
   input {
     padding: 0.75rem;
     border: 1px solid #ccc;
     border-radius: 8px;
     font-size: 1rem;
+    margin: 5px;
     &:focus {
       outline: none;
       border-color: #1976d2;
