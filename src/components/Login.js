@@ -102,7 +102,6 @@ function Login({ onLogin }) {
                 placeholder="Last Name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                required
               />
             </div>
             <select
