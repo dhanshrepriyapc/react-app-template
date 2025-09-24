@@ -75,63 +75,67 @@ function Sidebar({
         )}
         {(windowWidth <= 784 ? isMobileOpen : !isCollapsed) && (
           <div className="sidebar-content">
-            <div className="sidebar-header">
-              <h2>📅 Appointments</h2>
-              <p>Manage your schedule</p>
-              {/* Add user greeting here */}
-              {loggedInUser && (
-                <div className="user-greeting">
-                  <p>Welcome, {loggedInUser.firstName}!</p>
-                  <p className="timezone-text">{loggedInUser.timeZoneId}</p>
-                </div>
-              )}
-            </div>
-                       
-            <div className="sidebar-date">
-              <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} currentView={currentView} />
-            </div>
-
-            <div className="color-legend">
-              <div className="legend-grid" role="list" aria-label="Appointment color codes">
-                {Object.entries(typeColors).map(([type, color]) => (
-                  <div key={type} className="legend-item" role="listitem">
-                    <span
-                      className="legend-dot"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span className="legend-label">{type}</span>
+            <div className="sidebar-fixed-section">
+              <div className="sidebar-header">
+                <h2>📅 Appointments</h2>
+                <p>Manage your schedule</p>
+                {/* Add user greeting here */}
+                {loggedInUser && (
+                  <div className="user-greeting">
+                    <p>Welcome, {loggedInUser.firstName}!</p>
+                    <p className="timezone-text">{loggedInUser.timeZoneId}</p>
                   </div>
-                ))}
+                )}
+              </div>
+                                     
+              <div className="sidebar-date">
+                <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} currentView={currentView} />
+              </div>
+              
+              <div className="color-legend">
+                <div className="legend-grid" role="list" aria-label="Appointment color codes">
+                  {Object.entries(typeColors).map(([type, color]) => (
+                    <div key={type} className="legend-item" role="listitem">
+                      <span
+                        className="legend-dot"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className="legend-label">{type}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="appointment-list">
-              <h3>Recent & Upcoming</h3>
-              {upcomingAppointments.map((a) => {
-                const typeColor = typeColors[a.type] || "#1976d2";
-                return (
-                  <div key={a.id} className="appointment-item upcoming">
-                    <div className="appt-time">
-                      {new Date(a.startTime).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                        timeZone: loggedInUser?.timeZoneId // Fix: Display time in user's timezone
-                      })}
+            <div className="sidebar-scrollable-section">
+              <div className="appointment-list">
+                <h3>Recent & Upcoming</h3>
+                {upcomingAppointments.map((a) => {
+                  const typeColor = typeColors[a.type] || "#1976d2";
+                  return (
+                    <div key={a.id} className="appointment-item upcoming">
+                      <div className="appt-time">
+                        {new Date(a.startTime).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                          timeZone: loggedInUser?.timeZoneId // Fix: Display time in user's timezone
+                        })}
+                      </div>
+                      <div className="appt-title">{a.title}</div>
+                      <span
+                        className="appt-label"
+                        style={{
+                          backgroundColor: typeColor,
+                          color: "#fff",
+                        }}
+                      >
+                        Upcoming
+                      </span>
                     </div>
-                    <div className="appt-title">{a.title}</div>
-                    <span
-                      className="appt-label"
-                      style={{
-                        backgroundColor: typeColor,
-                        color: "#fff",
-                      }}
-                    >
-                      Upcoming
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
