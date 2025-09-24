@@ -22,6 +22,7 @@ function App() {
   const [newSlotTime, setNewSlotTime] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [highlightedAppointments, setHighlightedAppointments] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date()); // Added for digital clock
   const SLOT_HEIGHT = 80;
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
   const [currentView, setCurrentView] = useState("day");
@@ -33,11 +34,62 @@ function App() {
     "Follow-up": "#646b05ff",
   };
 
+  // --- DIGITAL CLOCK UPDATE ---
+  useEffect(() => {
+    const updateClock = () => {
+      if (loggedInUser?.timeZoneId) {
+        // Get current time in user's timezone
+        const now = new Date();
+        const userTime = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+        setCurrentTime(userTime);
+      } else {
+        setCurrentTime(new Date());
+      }
+    };
+
+    // Update immediately
+    updateClock();
+    
+    // Update every second
+    const clockInterval = setInterval(updateClock, 1000);
+    
+    return () => clearInterval(clockInterval);
+  }, [loggedInUser]);
+
+  // Format time for digital clock display
+  const formatDigitalTime = (date) => {
+    return date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit',
+      hour12: true 
+    });
+  };
+
+  // Get timezone abbreviation
+  const getTimezoneAbbr = () => {
+    if (!loggedInUser?.timeZoneId) return '';
+    
+    try {
+      const formatter = new Intl.DateTimeFormat('en', {
+        timeZone: loggedInUser.timeZoneId,
+        timeZoneName: 'short'
+      });
+      
+      const parts = formatter.formatToParts(new Date());
+      const timeZonePart = parts.find(part => part.type === 'timeZoneName');
+      return timeZonePart ? timeZonePart.value : '';
+    } catch (error) {
+      console.error('Error getting timezone abbreviation:', error);
+      return '';
+    }
+  };
+
   // --- AUTO-LOGIN ON APP START ---
   useEffect(() => {
     const checkExistingAuth = async () => {
       const token = localStorage.getItem("jwtToken");
-      const savedUser = localStorage.getItem("userData"); // Add this line
+      const savedUser = localStorage.getItem("userData");
       
       if (!token) {
         setIsLoading(false);
@@ -45,7 +97,6 @@ function App() {
       }
       
       try {
-        // First, try to use saved user data if available
         if (savedUser) {
           const userData = JSON.parse(savedUser);
           console.log('Using saved user data:', userData);
@@ -55,20 +106,17 @@ function App() {
           return;
         }
         
-        // Fallback to JWT decoding if no saved user data
         const payload = JSON.parse(atob(token.split('.')[1]));
         
-        // Check if token is expired
         const currentTime = Date.now() / 1000;
         if (payload.exp < currentTime) {
           console.log('Token expired, removing');
           localStorage.removeItem("jwtToken");
-          localStorage.removeItem("userData"); // Clean up user data too
+          localStorage.removeItem("userData");
           setIsLoading(false);
           return;
         }
         
-        // Token is valid, log user in using JWT data
         console.log('Valid token found, logging in user');
         const userData = {
           id: payload.sub || payload.userId || payload.id,
@@ -80,8 +128,6 @@ function App() {
         
         setLoggedIn(true);
         setLoggedInUser(userData);
-        
-        // Save user data to localStorage for future refreshes
         localStorage.setItem("userData", JSON.stringify(userData));
         
       } catch (error) {
@@ -96,13 +142,12 @@ function App() {
     checkExistingAuth();
   }, []);
 
-
-    // --- LOGOUT FUNCTION ---
+  // --- LOGOUT FUNCTION ---
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       console.log('User confirmed logout');
       localStorage.removeItem("jwtToken");
-      localStorage.removeItem("userData"); 
+      localStorage.removeItem("userData");
       setLoggedIn(false);
       setLoggedInUser(null);
       setAppointments([]);
@@ -157,17 +202,13 @@ function App() {
     return userToday.toDateString() === selectedDateObj.toDateString();
   };
 
-  // Replace the existing getStatus function with this timezone-aware version
   const getStatus = (start) => {
     if (!loggedInUser?.timeZoneId) {
       return new Date(start) < new Date() ? "completed" : "upcoming";
     }
     
-    // Get current time in user's timezone
     const now = new Date();
     const userNow = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
-    
-    // Convert appointment start time for comparison
     const appointmentTime = new Date(start);
     
     return appointmentTime > userNow ? "upcoming" : "completed";
@@ -221,7 +262,6 @@ function App() {
 
     const startTimeString = `${selectedDate}T${startTime24}:00`;
     const endTimeString = `${selectedDate}T${endTime24}:00`;
-
     const recurrenceType = formData.get("recurrence") || "None";
     const recurrenceInterval = formData.get("recurrenceInterval");
     const recurrenceEndDate = formData.get("recurrenceEndDate");
@@ -370,7 +410,6 @@ function App() {
       <Login
         onLogin={(user, token) => {
           if (token) localStorage.setItem("jwtToken", token);
-          // Save user data to localStorage
           localStorage.setItem("userData", JSON.stringify(user));
           setLoggedIn(true);
           setLoggedInUser(user);
@@ -447,12 +486,32 @@ function App() {
       />
       <div className="main-content">
         <div className="page-header">
-          <h2>{formatPrettyDate(selectedDate)}</h2>
+          <div className="header-left">
+            <h2>{formatPrettyDate(selectedDate)}</h2>
+            <div className="digital-clock">
+              <span className="time">{formatDigitalTime(currentTime)}</span>
+              <span className="timezone">{getTimezoneAbbr()}</span>
+            </div>
+          </div>
           <div className="header-right">
             <SearchBar
-              onResults={(results) => {
+              onResults={(results, shouldAutoScroll = false) => {
                 const ids = results.map((appt) => appt.id);
                 setHighlightedAppointments(ids);
+                
+                // Auto-scroll to first result if requested
+                if (shouldAutoScroll && results.length > 0) {
+                  setTimeout(() => {
+                    const firstResultId = results[0].id;
+                    const element = document.querySelector(`[data-appointment-id="${firstResultId}"]`);
+                    if (element) {
+                      element.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                      });
+                    }
+                  }, 100);
+                }
               }}
             />
             <select
