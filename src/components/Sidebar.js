@@ -8,7 +8,7 @@ function Sidebar({
   isSameDay,
   getStatus,
   currentView,
-  loggedInUser // Add this prop
+  loggedInUser
 }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -35,26 +35,21 @@ function Sidebar({
     }
   };
 
-  // Fix: Create a timezone-aware status checker
+  // Fix: Since backend sends local time, don't apply timezone conversion
   const getStatusForUserTimezone = (startTime) => {
-    if (!loggedInUser?.timeZoneId) {
-      return getStatus(startTime); // fallback to original logic
-    }
-    
-    // Get current time in user's timezone
-    const now = new Date();
-    const userNow = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
-    
-    // Convert appointment start time to user's timezone for comparison
-    const appointmentTime = new Date(startTime);
-    
-    return appointmentTime > userNow ? "upcoming" : "completed";
+    // Use the original getStatus function since backend already sends local time
+    return getStatus(startTime);
   };
 
-  // Fix: Use timezone-aware filtering
+  // Filter appointments for the selected date
   const upcomingAppointments = appointments.filter(
     (a) => isSameDay(a.startTime, selectedDate) && getStatusForUserTimezone(a.startTime) === "upcoming"
   );
+
+  // DEBUG: Add logging to see what appointments are being filtered
+  console.log("All appointments:", appointments);
+  console.log("Selected date:", selectedDate);
+  console.log("Filtered upcoming appointments:", upcomingAppointments);
 
   return (
     <>
@@ -79,7 +74,6 @@ function Sidebar({
               <div className="sidebar-header">
                 <h2>📅 Appointments</h2>
                 <p>Manage your schedule</p>
-                {/* Add user greeting here */}
                 {loggedInUser && (
                   <div className="user-greeting">
                     <p>Welcome, {loggedInUser.firstName}!</p>
@@ -87,11 +81,11 @@ function Sidebar({
                   </div>
                 )}
               </div>
-                                     
+
               <div className="sidebar-date">
                 <DateNav selectedDate={selectedDate} setSelectedDate={setSelectedDate} currentView={currentView} />
               </div>
-              
+
               <div className="color-legend">
                 <div className="legend-grid" role="list" aria-label="Appointment color codes">
                   {Object.entries(typeColors).map(([type, color]) => (
@@ -106,21 +100,33 @@ function Sidebar({
                 </div>
               </div>
             </div>
-
             <div className="sidebar-scrollable-section">
               <div className="appointment-list">
                 <h3>Recent & Upcoming</h3>
+                
                 {upcomingAppointments.map((a) => {
                   const typeColor = typeColors[a.type] || "#1976d2";
+                  
+                  // Fix: Since backend sends local time, just display it directly
+                  // Don't apply timezone conversion
+                  const startTime = new Date(a.startTime);
+                  const displayTime = startTime.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true
+                  });
+                  
+                  // DEBUG: Log each appointment's time conversion
+                  console.log(`Appointment "${a.title}":`, {
+                    originalStartTime: a.startTime,
+                    displayTime: displayTime,
+                    rawTime: startTime.toString()
+                  });
+                  
                   return (
                     <div key={a.id} className="appointment-item upcoming">
                       <div className="appt-time">
-                        {new Date(a.startTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                          timeZone: loggedInUser?.timeZoneId // Fix: Display time in user's timezone
-                        })}
+                        {displayTime}
                       </div>
                       <div className="appt-title">{a.title}</div>
                       <span

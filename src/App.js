@@ -191,8 +191,13 @@ function App() {
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
 
-  const isSameDay = (dateStr) =>
-    new Date(dateStr).toDateString() === new Date(selectedDate).toDateString();
+  const isSameDay = (dateStr, selectedDateStr = selectedDate) => {
+  // Handle both ISO strings and Date objects
+  const appointmentDate = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+  const selectedDateObj = new Date(selectedDateStr);
+  return appointmentDate.toDateString() === selectedDateObj.toDateString();
+};
+
 
   const isToday = () => {
     if (!loggedInUser?.timeZoneId) return false;
@@ -203,51 +208,63 @@ function App() {
   };
 
   const getStatus = (start) => {
-    if (!loggedInUser?.timeZoneId) {
-      return new Date(start) < new Date() ? "completed" : "upcoming";
-    }
-    
-    const now = new Date();
-    const userNow = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
-    const appointmentTime = new Date(start);
-    
-    return appointmentTime > userNow ? "upcoming" : "completed";
-  };
+  if (!loggedInUser?.timeZoneId) {
+    const startTime = typeof start === 'string' ? new Date(start) : start;
+    return startTime < new Date() ? "completed" : "upcoming";
+  }
+  
+  const now = new Date();
+  const userNow = new Date(now.toLocaleString("en-US", { timeZone: loggedInUser.timeZoneId }));
+  const appointmentTime = typeof start === 'string' ? new Date(start) : start;
+  
+  return appointmentTime > userNow ? "upcoming" : "completed";
+};
+
 
   const formatPrettyDate = (dateStr) =>
     new Date(dateStr).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 
-  // --- FETCH APPOINTMENTS ---
-  const fetchAppointments = async () => {
-    const token = localStorage.getItem("jwtToken");
-    if (!loggedInUser || !token) return;
+ // --- FETCH APPOINTMENTS ---
+const fetchAppointments = async () => {
+  const token = localStorage.getItem("jwtToken");
+  if (!loggedInUser || !token) return;
+  
+  try {
+    const response = await fetch(`http://localhost:5169/api/appointments/user`, {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    });
     
-    try {
-      const response = await fetch(`http://localhost:5169/api/appointments/user`, {
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.log('401 error in fetchAppointments - token may be expired');
-          handleLogout();
-          return;
-        }
-        throw new Error("Failed to fetch appointments");
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.log('401 error in fetchAppointments - token may be expired');
+        handleLogout();
+        return;
       }
-      
-      const data = await response.json();
-      const appointments = data.map((appt) => ({
-        ...appt,
-        startTime: new Date(appt.startTime),
-        endTime: new Date(appt.endTime),
-      }));
-      setAppointments(appointments);
-    } catch (err) {
-      console.error('Error fetching appointments:', err);
-      setErrorMessage(err.message);
+      throw new Error("Failed to fetch appointments");
     }
-  };
+    
+    const data = await response.json();
+    
+    // DEBUG: Log the raw data from backend
+    console.log("Raw appointment data from backend:", data[0]);
+    
+    const appointments = data.map((appt) => ({
+      ...appt,
+      startTime: new Date(appt.startTime),
+      endTime: new Date(appt.endTime),
+    }));
+    
+    // DEBUG: Log the processed appointment
+    console.log("Processed appointment:", appointments[0]);
+    console.log("User timezone:", loggedInUser.timeZoneId);
+    
+    setAppointments(appointments);
+  } catch (err) {
+    console.error('Error fetching appointments:', err);
+    setErrorMessage(err.message);
+  }
+};
+
 
   // --- ADD / EDIT ---
   const handleAddOrEdit = async (e) => {
@@ -337,48 +354,48 @@ function App() {
     }
   };
 
-  // --- FETCH ON LOGIN ---
-  useEffect(() => {
-    if (!loggedInUser) return;
-    let cancelled = false;
-    
-    const fetchForUser = async () => {
-      const token = localStorage.getItem("jwtToken");
-      if (!token) return;
+    // --- FETCH ON LOGIN ---
+    useEffect(() => {
+      if (!loggedInUser) return;
+      let cancelled = false;
       
-      try {
-        const res = await fetch(`http://localhost:5169/api/appointments/user`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const fetchForUser = async () => {
+        const token = localStorage.getItem("jwtToken");
+        if (!token) return;
         
-        if (!res.ok) {
-          if (res.status === 401) {
-            console.log('401 error in fetchForUser - token may be expired');
-            handleLogout();
-            return;
+        try {
+          const res = await fetch(`http://localhost:5169/api/appointments/user`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          if (!res.ok) {
+            if (res.status === 401) {
+              console.log('401 error in fetchForUser - token may be expired');
+              handleLogout();
+              return;
+            }
+            throw new Error("Failed to fetch appointments");
           }
-          throw new Error("Failed to fetch appointments");
+          
+          const data = await res.json();
+          const appointments = data.map((appt) => ({
+            ...appt,
+            startTime: new Date(appt.startTime),
+            endTime: new Date(appt.endTime),
+          }));
+          
+          if (!cancelled) setAppointments(appointments);
+        } catch (err) {
+          if (!cancelled) {
+            console.error('Error in fetchForUser:', err);
+            setErrorMessage(err.message);
+          }
         }
-        
-        const data = await res.json();
-        const appointments = data.map((appt) => ({
-          ...appt,
-          startTime: new Date(appt.startTime),
-          endTime: new Date(appt.endTime),
-        }));
-        
-        if (!cancelled) setAppointments(appointments);
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Error in fetchForUser:', err);
-          setErrorMessage(err.message);
-        }
-      }
-    };
-    
-    fetchForUser();
-    return () => { cancelled = true; };
-  }, [loggedInUser]);
+      };
+      
+      fetchForUser();
+      return () => { cancelled = true; };
+    }, [loggedInUser]);
 
   // --- NOW LINE ---
   useEffect(() => {
