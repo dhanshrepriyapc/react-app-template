@@ -221,6 +221,84 @@ describe('App Component', () => {
     console.log = originalConsoleLog;
     jest.restoreAllMocks();
   });
+  describe('Component Lifecycle', () => {
+    test('handles component unmount during fetch', async () => {
+      const mockUserData = {
+        id: 1,
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        timeZoneId: 'America/New_York'
+      };
+      
+      mockLocalStorage.getItem.mockImplementation((key) => {
+        if (key === 'jwtToken') return 'valid.jwt.token';
+        if (key === 'userData') return JSON.stringify(mockUserData);
+        if (key === 'theme') return 'light';
+        return null;
+      });
+
+      // Mock a slow fetch
+      fetch.mockImplementation(() => new Promise(resolve => {
+        setTimeout(() => resolve({
+          ok: true,
+          json: async () => ([])
+        }), 500);
+      }));
+
+      const { unmount } = render(<App />);
+      
+      // Unmount before fetch completes
+      setTimeout(() => unmount(), 100);
+      
+      // Wait for the fetch to potentially complete
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 600));
+      });
+
+      // Should not cause any errors or state updates after unmount
+      expect(fetch).toHaveBeenCalled();
+    });
+
+    test('handles cancelled flag in fetchForUser', async () => {
+      const mockUserData = {
+        id: 1,
+        username: 'testuser',
+        firstName: 'Test',
+        lastName: 'User',
+        timeZoneId: 'America/New_York'
+      };
+      
+      mockLocalStorage.getItem.mockImplementation((key) => {
+        if (key === 'jwtToken') return 'valid.jwt.token';
+        if (key === 'userData') return JSON.stringify(mockUserData);
+        if (key === 'theme') return 'light';
+        return null;
+      });
+
+      let resolvePromise;
+      fetch.mockImplementation(() => new Promise(resolve => {
+        resolvePromise = resolve;
+      }));
+
+      const { unmount } = render(<App />);
+      
+      // Unmount to set cancelled flag
+      unmount();
+      
+      // Resolve the promise after unmount
+      if (resolvePromise) {
+        resolvePromise({
+          ok: true,
+          json: async () => ([])
+        });
+      }
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+    });
+  });
 
   describe('Initial Loading and Authentication', () => {
 
@@ -318,6 +396,114 @@ describe('App Component', () => {
         expect(screen.getByTestId('login')).toBeInTheDocument();
       });
     });
+    test('handles logout cancellation', async () => {
+  const mockUserData = {
+    id: 1,
+    username: 'testuser',
+    firstName: 'Test',
+    lastName: 'User',
+    timeZoneId: 'America/New_York'
+  };
+  
+  mockLocalStorage.getItem.mockImplementation((key) => {
+    if (key === 'jwtToken') return 'valid.jwt.token';
+    if (key === 'userData') return JSON.stringify(mockUserData);
+    if (key === 'theme') return 'light';
+    return null;
+  });
+
+  global.confirm.mockReturnValue(false); // User cancels logout
+
+  render(<App />);
+  
+  await waitFor(() => {
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+  });
+
+  const logoutButton = screen.getByTestId('sidebar-logout');
+  fireEvent.click(logoutButton);
+
+  // Should remain logged in
+  expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+  expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
+});
+
+test('auto-login with valid token but no saved user data', async () => {
+  const validToken = btoa(JSON.stringify({
+    exp: Math.floor(Date.now() / 1000) + 3600,
+    sub: 'user123',
+    username: 'testuser',
+    firstName: 'Test',
+    lastName: 'User',
+    timeZoneId: 'America/New_York'
+  }));
+  
+  mockLocalStorage.getItem.mockImplementation((key) => {
+    if (key === 'jwtToken') return `header.${validToken}.signature`;
+    if (key === 'theme') return 'light';
+    return null; // No saved userData
+  });
+
+  render(<App />);
+  
+  await waitFor(() => {
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+  });
+  
+  expect(mockLocalStorage.setItem).toHaveBeenCalledWith('userData', expect.any(String));
+});
+
+test('handles token parsing error', async () => {
+  mockLocalStorage.getItem.mockImplementation((key) => {
+    if (key === 'jwtToken') return 'invalid.token.format';
+    if (key === 'theme') return 'light';
+    return null;
+  });
+
+  render(<App />);
+  
+  await waitFor(() => {
+    expect(screen.getByTestId('login')).toBeInTheDocument();
+  });
+  
+  expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('jwtToken');
+  expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('userData');
+});
+test('handles logout confirmation acceptance', async () => {
+  const mockUserData = {
+    id: 1,
+    username: 'testuser',
+    firstName: 'Test',
+    lastName: 'User',
+    timeZoneId: 'America/New_York'
+  };
+  
+  mockLocalStorage.getItem.mockImplementation((key) => {
+    if (key === 'jwtToken') return 'valid.jwt.token';
+    if (key === 'userData') return JSON.stringify(mockUserData);
+    if (key === 'theme') return 'light';
+    return null;
+  });
+
+  global.confirm.mockReturnValue(true); // User confirms logout
+
+  render(<App />);
+  
+  await waitFor(() => {
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+  });
+
+  const logoutButton = screen.getByTestId('sidebar-logout');
+  fireEvent.click(logoutButton);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('login')).toBeInTheDocument();
+  });
+
+  expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('jwtToken');
+  expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('userData');
+});
+
   });
 
   describe('Theme Management', () => {
@@ -574,6 +760,74 @@ describe('App Component', () => {
 
       expect(screen.getByTestId('modal')).toBeInTheDocument();
     });
+    test('handles appointment creation with all recurrence options', async () => {
+  fetch
+    .mockResolvedValueOnce({ ok: true, json: async () => ([]) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 1 }) });
+
+  render(<App />);
+  
+  await waitFor(() => {
+    expect(screen.getByTestId('timeline')).toBeInTheDocument();
+  });
+
+  const emptySlotButton = screen.getByTestId('empty-slot-click');
+  fireEvent.click(emptySlotButton);
+
+  // Test with recurrence
+  const recurrenceInput = screen.getByTestId('recurrence-input');
+  fireEvent.change(recurrenceInput, { target: { value: 'Weekly' } });
+
+  const form = screen.getByTestId('appointment-form');
+  fireEvent.submit(form);
+
+  await waitFor(() => {
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"Recurrence":2'),
+      })
+    );
+  });
+});
+
+test('handles appointment creation without optional fields', async () => {
+  fetch
+    .mockResolvedValueOnce({ ok: true, json: async () => ([]) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 1 }) });
+
+  render(<App />);
+  
+  await waitFor(() => {
+    expect(screen.getByTestId('timeline')).toBeInTheDocument();
+  });
+
+  const emptySlotButton = screen.getByTestId('empty-slot-click');
+  fireEvent.click(emptySlotButton);
+
+  // Clear optional fields
+  const descriptionInput = screen.getByTestId('description-input');
+  const locationInput = screen.getByTestId('location-input');
+  const typeInput = screen.getByTestId('type-input');
+  
+  fireEvent.change(descriptionInput, { target: { value: '' } });
+  fireEvent.change(locationInput, { target: { value: '' } });
+  fireEvent.change(typeInput, { target: { value: '' } });
+
+  const form = screen.getByTestId('appointment-form');
+  fireEvent.submit(form);
+
+  await waitFor(() => {
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"Description":""'),
+      })
+    );
+  });
+});
   });
 
   describe('Error Handling', () => {
@@ -632,6 +886,83 @@ describe('App Component', () => {
 
       expect(screen.queryByTestId('error-modal')).not.toBeInTheDocument();
     });
+    test('handles 401 error during appointment creation', async () => {
+    fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ([]) })
+      .mockResolvedValueOnce({ 
+        ok: false, 
+        status: 401,
+        json: async () => ({ message: 'Unauthorized' })
+      });
+
+    render(<App />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('timeline')).toBeInTheDocument();
+    });
+
+    const emptySlotButton = screen.getByTestId('empty-slot-click');
+    fireEvent.click(emptySlotButton);
+
+    const form = screen.getByTestId('appointment-form');
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('login')).toBeInTheDocument();
+    });
+  });
+
+  test('handles 401 error during appointment deletion', async () => {
+    fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ([]) })
+      .mockResolvedValueOnce({ 
+        ok: false, 
+        status: 401
+      });
+
+    render(<App />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('timeline')).toBeInTheDocument();
+    });
+
+    const appointmentButton = screen.getByTestId('appointment-click');
+    fireEvent.click(appointmentButton);
+
+    const deleteButton = screen.getByTestId('delete-button');
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('login')).toBeInTheDocument();
+    });
+  });
+
+  test('handles appointment creation error with custom message', async () => {
+    fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ([]) })
+      .mockResolvedValueOnce({ 
+        ok: false, 
+        status: 400,
+        json: async () => ({ message: 'Custom error message' })
+      });
+
+    render(<App />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('timeline')).toBeInTheDocument();
+    });
+
+    const emptySlotButton = screen.getByTestId('empty-slot-click');
+    fireEvent.click(emptySlotButton);
+
+    const form = screen.getByTestId('appointment-form');
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('error-message')).toHaveTextContent('Custom error message');
+    });
+  });
   });
 
   describe('Date Management', () => {
@@ -967,6 +1298,39 @@ describe('App Component', () => {
       // Component should handle timezone conversion properly
       expect(screen.getByTestId('sidebar')).toBeInTheDocument();
     });
+    test('handles fetchForUser cancellation', async () => {
+  const mockUserData = {
+    id: 1,
+    username: 'testuser',
+    firstName: 'Test',
+    lastName: 'User',
+    timeZoneId: 'America/New_York'
+  };
+  
+  mockLocalStorage.getItem.mockImplementation((key) => {
+    if (key === 'jwtToken') return 'valid.jwt.token';
+    if (key === 'userData') return JSON.stringify(mockUserData);
+    if (key === 'theme') return 'light';
+    return null;
+  });
+
+  // Mock a slow fetch that will be cancelled
+  fetch.mockImplementation(() => new Promise(resolve => {
+    setTimeout(() => resolve({
+      ok: true,
+      json: async () => ([])
+    }), 1000);
+  }));
+
+  const { unmount } = render(<App />);
+  
+  // Unmount quickly to trigger cancellation
+  unmount();
+  
+  // The fetch should be cancelled and not cause any state updates
+  expect(fetch).toHaveBeenCalled();
+});
+
   });
 
   describe('Component Cleanup', () => {
@@ -1369,6 +1733,81 @@ describe('App Component', () => {
       // The now line position should be calculated based on the current time
       expect(screen.getByTestId('timeline')).toBeInTheDocument();
     });
+    describe('Time and Timezone Handling', () => {
+  beforeEach(async () => {
+    const mockUserData = {
+      id: 1,
+      username: 'testuser',
+      firstName: 'Test',
+      lastName: 'User',
+      timeZoneId: 'America/New_York'
+    };
+    
+    mockLocalStorage.getItem.mockImplementation((key) => {
+      if (key === 'jwtToken') return 'valid.jwt.token';
+      if (key === 'userData') return JSON.stringify(mockUserData);
+      if (key === 'theme') return 'light';
+      return null;
+    });
+  });
+
+  test('handles user without timezone', async () => {
+    const mockUserDataNoTZ = {
+      id: 1,
+      username: 'testuser',
+      firstName: 'Test',
+      lastName: 'User'
+      // No timeZoneId
+    };
+    
+    mockLocalStorage.getItem.mockImplementation((key) => {
+      if (key === 'jwtToken') return 'valid.jwt.token';
+      if (key === 'userData') return JSON.stringify(mockUserDataNoTZ);
+      if (key === 'theme') return 'light';
+      return null;
+    });
+
+    render(<App />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+    });
+  });
+
+  test('handles 12:00 PM (noon) time conversion', async () => {
+    fetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ([]) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 1 }) });
+
+    render(<App />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('timeline')).toBeInTheDocument();
+    });
+
+    const emptySlotButton = screen.getByTestId('empty-slot-click');
+    fireEvent.click(emptySlotButton);
+
+    const startInput = screen.getByTestId('start-input');
+    const startPeriod = screen.getByTestId('start-period');
+    fireEvent.change(startInput, { target: { value: '12:00' } });
+    fireEvent.change(startPeriod, { target: { value: 'PM' } });
+
+    const form = screen.getByTestId('appointment-form');
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('12:00:00'),
+        })
+      );
+    });
+  });
+});
+
   });
 
   describe('Accessibility and User Experience', () => {
