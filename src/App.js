@@ -9,6 +9,7 @@ import Modal from "./components/Modal";
 import ErrorModal from "./components/ErrorModal";
 import Login from "./components/Login";
 import SearchBar from "./components/SearchBar";
+import WebVitalsDisplay from './components/WebVitalsDisplay';
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -490,6 +491,7 @@ const fetchAppointments = async () => {
   };
 
   return (
+    
     <div className="app">
       <Sidebar
         appointments={appointments}
@@ -589,6 +591,7 @@ const fetchAppointments = async () => {
         handleDelete={handleDelete}
       />
       <ErrorModal message={errorMessage} onClose={() => setErrorMessage(null)} />
+        <WebVitalsDisplay />
     </div>
   );
 }
