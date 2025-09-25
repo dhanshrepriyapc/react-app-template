@@ -19,7 +19,7 @@ export const logWebVitals = (metric) => {
   // Color coding based on rating
   const colors = {
     good: '#0CCE6B',
-    'needs-improvement': '#FFA400', 
+    'needs-improvement': '#FFA400',
     poor: '#FF4E42'
   };
   
@@ -61,8 +61,8 @@ export const logWebVitals = (metric) => {
 // Send to Google Analytics
 export const sendToGoogleAnalytics = (metric) => {
   // Check if gtag is available (Google Analytics 4)
-  if (typeof gtag !== 'undefined') {
-    gtag('event', metric.name, {
+  if (typeof window.gtag !== 'undefined') {
+    window.gtag('event', metric.name, {
       event_category: 'Web Vitals',
       event_label: metric.id,
       value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
@@ -71,8 +71,8 @@ export const sendToGoogleAnalytics = (metric) => {
     });
   }
   // Check if ga is available (Universal Analytics - legacy)
-  else if (typeof ga !== 'undefined') {
-    ga('send', 'event', {
+  else if (typeof window.ga !== 'undefined') {
+    window.ga('send', 'event', {
       eventCategory: 'Web Vitals',
       eventAction: metric.name,
       eventValue: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
@@ -134,7 +134,6 @@ export const sendToAnalytics = async (metric) => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`✅ Web Vital ${metric.name} sent successfully`);
     }
-
   } catch (error) {
     // Fail silently in production to not impact user experience
     if (process.env.NODE_ENV === 'development') {
@@ -179,10 +178,10 @@ export const createBatchReporter = (batchSize = 5, flushInterval = 10000) => {
 
   const flush = async () => {
     if (batch.length === 0) return;
-
+    
     const metricsToSend = [...batch];
     batch = [];
-
+    
     try {
       await fetch('/api/analytics/web-vitals-batch', {
         method: 'POST',
@@ -250,8 +249,8 @@ export const createBudgetChecker = (budgets = {}) => {
       );
       
       // Send budget violation to analytics
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'performance_budget_exceeded', {
+      if (typeof window.gtag !== 'undefined') {
+        window.gtag('event', 'performance_budget_exceeded', {
           event_category: 'Performance',
           event_label: metric.name,
           value: Math.round(metric.value),

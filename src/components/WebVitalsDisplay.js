@@ -13,10 +13,8 @@ const WebVitalsDisplay = () => {
       CLS: { good: 0.1, poor: 0.25 },
       TTFB: { good: 800, poor: 1800 }
     };
-
     const threshold = thresholds[name];
     if (!threshold) return 'unknown';
-
     if (value <= threshold.good) return 'good';
     if (value <= threshold.poor) return 'needs-improvement';
     return 'poor';
@@ -32,7 +30,7 @@ const WebVitalsDisplay = () => {
         setVitals(prev => ({
           ...prev,
           [metric.name]: {
-            value: metric.name === 'CLS' ? 
+            value: metric.name === 'CLS' ?
               Math.round(metric.value * 1000) / 1000 : // Keep 3 decimal places for CLS
               Math.round(metric.value),
             rating: rating,
@@ -87,13 +85,13 @@ const WebVitalsDisplay = () => {
 
   return (
     <>
-      {/* Toggle Button */}
+      {/* Toggle Button - moved to left */}
       <button
         onClick={() => setIsVisible(!isVisible)}
         style={{
           position: 'fixed',
           bottom: '20px',
-          right: '20px',
+          left: '20px', // Changed from right to left
           zIndex: 1000,
           padding: '12px',
           backgroundColor: '#374151',
@@ -122,12 +120,12 @@ const WebVitalsDisplay = () => {
         📊
       </button>
       
-      {/* Web Vitals Panel */}
+      {/* Web Vitals Panel - moved to left */}
       {isVisible && (
         <div style={{
           position: 'fixed',
           bottom: '80px',
-          right: '20px',
+          left: '20px', // Changed from right to left
           zIndex: 1000,
           backgroundColor: '#1F2937',
           border: '1px solid #374151',
