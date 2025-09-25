@@ -46,6 +46,7 @@ function AppointmentBlock({ appointment, onClick, slotHeight = 80, getStatus, hi
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       className={`appointment-block ${status} ${highlight ? "highlight" : ""} ${className}`}
+      data-appointment-id={appointment.id}
       style={{
         top: `${top}px`,
         height: `${height}px`,

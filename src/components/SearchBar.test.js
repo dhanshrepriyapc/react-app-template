@@ -161,30 +161,31 @@ describe('SearchBar Component', () => {
     });
   });
 
-  test('calls onResults with search results on successful search', async () => {
-    const user = userEvent.setup();
-    const mockResults = [
-      { id: 1, title: 'Meeting with client' },
-      { id: 2, title: 'Team meeting' },
-    ];
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue(mockResults),
-    };
-    fetch.mockResolvedValue(mockResponse);
+ test('calls onResults with search results on successful search', async () => {
+  const user = userEvent.setup();
+  const mockResults = [
+    { id: 1, title: 'Meeting with client' },
+    { id: 2, title: 'Team meeting' },
+  ];
+  const mockResponse = {
+    ok: true,
+    json: jest.fn().mockResolvedValue(mockResults),
+  };
+  fetch.mockResolvedValue(mockResponse);
 
-    render(<SearchBar {...defaultProps} />);
-    
-    const input = screen.getByPlaceholderText('Search appointments...');
-    const button = screen.getByRole('button', { name: /search/i });
-    
-    await user.type(input, 'meeting');
-    await user.click(button);
-    
-    await waitFor(() => {
-      expect(mockOnResults).toHaveBeenCalledWith(mockResults);
-    });
+  render(<SearchBar {...defaultProps} />);
+  
+  const input = screen.getByPlaceholderText('Search appointments...');
+  const button = screen.getByRole('button', { name: /search/i });
+  
+  await user.type(input, 'meeting');
+  await user.click(button);
+  
+  await waitFor(() => {
+    // Your SearchBar calls onResults(data, true) - so expect both parameters
+    expect(mockOnResults).toHaveBeenCalledWith(mockResults, true);
   });
+});
 
   test('shows loading state during search', async () => {
     const user = userEvent.setup();
@@ -371,26 +372,27 @@ describe('SearchBar Component', () => {
     expect(input.value).toBe('meeting');
   });
 
-  test('handles empty search results', async () => {
-    const user = userEvent.setup();
-    const mockResponse = {
-      ok: true,
-      json: jest.fn().mockResolvedValue([]),
-    };
-    fetch.mockResolvedValue(mockResponse);
-
-    render(<SearchBar {...defaultProps} />);
-    
-    const input = screen.getByPlaceholderText('Search appointments...');
-    const button = screen.getByRole('button', { name: /search/i });
-    
-    await user.type(input, 'nonexistent');
-    await user.click(button);
-    
-    await waitFor(() => {
-      expect(mockOnResults).toHaveBeenCalledWith([]);
-    });
+ test('handles empty search results', async () => {
+  const user = userEvent.setup();
+  const mockResponse = {
+    ok: true,
+    json: jest.fn().mockResolvedValue([]),
+  };
+  fetch.mockResolvedValue(mockResponse);
+  
+  render(<SearchBar {...defaultProps} />);
+  
+  const input = screen.getByPlaceholderText('Search appointments...');
+  const button = screen.getByRole('button', { name: /search/i });
+  
+  await user.type(input, 'nonexistent');
+  await user.click(button);
+  
+  await waitFor(() => {
+    // Even with empty results, successful response calls onResults(data, true)
+    expect(mockOnResults).toHaveBeenCalledWith([], true);
   });
+});
 
   test('applies correct CSS classes', () => {
     const { container } = render(<SearchBar {...defaultProps} />);

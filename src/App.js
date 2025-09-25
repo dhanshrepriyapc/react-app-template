@@ -517,17 +517,25 @@ const fetchAppointments = async () => {
                 setHighlightedAppointments(ids);
                 
                 // Auto-scroll to first result if requested
-                if (shouldAutoScroll && results.length > 0) {
+                  if (shouldAutoScroll && results.length > 0) {
+                    const firstResult = results[0];
+                    const firstResultDate = new Date(firstResult.startTime).toISOString().split("T")[0];
+  
+                  // Switch to the date of the first result if different
+                  if (firstResultDate !== selectedDate) {
+                    setSelectedDate(firstResultDate);
+                  }
+                  
                   setTimeout(() => {
-                    const firstResultId = results[0].id;
+                    const firstResultId = firstResult.id;
                     const element = document.querySelector(`[data-appointment-id="${firstResultId}"]`);
                     if (element) {
-                      element.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center' 
+                      element.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
                       });
                     }
-                  }, 100);
+                  }, firstResultDate !== selectedDate ? 300 : 100); // Longer delay if date changed
                 }
               }}
             />

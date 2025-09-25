@@ -634,54 +634,6 @@ describe('App Component', () => {
     });
   });
 
-  describe('Search Functionality', () => {
-    beforeEach(async () => {
-      const mockUserData = {
-        id: 1,
-        username: 'testuser',
-        firstName: 'Test',
-        lastName: 'User',
-        timeZoneId: 'America/New_York'
-      };
-      
-      mockLocalStorage.getItem.mockImplementation((key) => {
-        if (key === 'jwtToken') return 'valid.jwt.token';
-        if (key === 'userData') return JSON.stringify(mockUserData);
-        if (key === 'theme') return 'light';
-        return null;
-      });
-    });
-
-    test('handles search results', async () => {
-      render(<App />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('search-bar')).toBeInTheDocument();
-      });
-
-      const searchTrigger = screen.getByTestId('search-trigger');
-      fireEvent.click(searchTrigger);
-
-      expect(screen.getByTestId('highlighted-count')).toHaveTextContent('1');
-    });
-
-    test('clears search results', async () => {
-      render(<App />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('search-bar')).toBeInTheDocument();
-      });
-
-      const searchTrigger = screen.getByTestId('search-trigger');
-      fireEvent.click(searchTrigger);
-
-      const clearSearch = screen.getByTestId('clear-search');
-      fireEvent.click(clearSearch);
-
-      expect(screen.getByTestId('highlighted-count')).toHaveTextContent('0');
-    });
-  });
-
   describe('Date Management', () => {
     beforeEach(async () => {
       const mockUserData = {

@@ -27,7 +27,7 @@ function SearchBar({ onResults }) {
       if (!response.ok) throw new Error("Search failed");
 
       const data = await response.json();
-      onResults(data);
+      onResults(data, true);
     } catch (err) {
       console.error(err);
       onResults([]); // clear results on error
