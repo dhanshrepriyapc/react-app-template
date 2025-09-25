@@ -273,6 +273,13 @@ describe('Timeline Component', () => {
       
       expect(Element.prototype.scrollTo).not.toHaveBeenCalled();
     });
+
+  test('handles scroll effect when highlighted appointment is not found', async () => {
+    render(<Timeline {...mockProps} highlightedAppointments={[999]} />); // Non-existent appointment ID
+    
+    // Should not scroll when appointment is not found
+    expect(Element.prototype.scrollTo).not.toHaveBeenCalled();
+  });
   });
 
   describe('Now Line Display', () => {
@@ -613,6 +620,440 @@ describe('Timeline Component', () => {
       
       expect(fetch).not.toHaveBeenCalled();
     });
+     test('handles missing token in background update', async () => {
+    mockLocalStorage.getItem.mockReturnValue(null); // No token
+    
+    render(<Timeline {...mockProps} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    fireEvent.drop(timelineGrid, {
+      clientY: 1600,
+      dataTransfer: mockDataTransfer
+    });
+    
+    // Should log error and not make API call
+    expect(console.error).toHaveBeenCalledWith('No auth token found');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('handles appointments with mixed property casing in drag update', async () => {
+    const appointmentWithMixedProps = {
+      id: 1,
+      Title: 'Meeting with Title', // Capital T
+      startTime: '2024-01-15T09:00:00',
+      endTime: '2024-01-15T10:00:00',
+      Description: 'Capital D description', // Capital D
+      location: 'lowercase location', // lowercase
+      Type: 'Capital Type', // Capital T
+      colorCode: '#123456', // lowercase
+      Recurrence: 1, // Capital R
+      recurrenceInterval: 2, // lowercase
+      RecurrenceEndDate: '2024-12-31T23:59:59', // Capital
+      UserId: 123 // Capital
+    };
+    
+    const propsWithMixedAppointment = {
+      ...mockProps,
+      appointments: [appointmentWithMixedProps]
+    };
+    
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true })
+    });
+    
+    render(<Timeline {...propsWithMixedAppointment} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:5169/api/appointments/user/1',
+        expect.objectContaining({
+          method: 'PUT',
+          body: expect.stringContaining('"Title":"Meeting with Title"')
+        })
+      );
+    });
+  });
+
+  test('logs success message on successful background update', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true })
+    });
+    
+    render(<Timeline {...mockProps} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    await waitFor(() => {
+      expect(console.log).toHaveBeenCalledWith('✅ Appointment updated successfully');
+    });
+  });
+
+  test('logs error message on failed background update', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400
+    });
+    
+    render(<Timeline {...mockProps} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith('❌ Failed to update appointment');
+      expect(mockProps.fetchAppointments).toHaveBeenCalled();
+    });
+  });
+
+  test('handles fetchAppointments being undefined', async () => {
+    const propsWithoutFetch = {
+      ...mockProps,
+      fetchAppointments: undefined
+    };
+    
+    fetch.mockRejectedValueOnce(new Error('Network error'));
+    
+    render(<Timeline {...propsWithoutFetch} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    // Should not throw error when fetchAppointments is undefined
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith('❌ Background update failed:', expect.any(Error));
+    });
+  });
+  test('handles successful update without fetchAppointments callback', async () => {
+    const propsWithoutFetch = {
+      ...mockProps,
+      fetchAppointments: undefined
+    };
+    
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true })
+    });
+    
+    render(<Timeline {...propsWithoutFetch} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    await waitFor(() => {
+      expect(console.log).toHaveBeenCalledWith('✅ Appointment updated successfully');
+    });
+    
+    // Wait for setTimeout to complete (should not call fetchAppointments since it's undefined)
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 1100));
+    });
+  });
+
+  test('handles failed update without fetchAppointments callback', async () => {
+    const propsWithoutFetch = {
+      ...mockProps,
+      fetchAppointments: undefined
+    };
+    
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500
+    });
+    
+    render(<Timeline {...propsWithoutFetch} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith('❌ Failed to update appointment');
+    });
+    
+    // Should not throw error when fetchAppointments is undefined
+  });
+
+  test('handles appointments with all lowercase properties', async () => {
+    const appointmentWithLowercaseProps = {
+      id: 1,
+      title: 'lowercase title',
+      startTime: '2024-01-15T09:00:00',
+      endTime: '2024-01-15T10:00:00',
+      description: 'lowercase description',
+      location: 'lowercase location',
+      type: 'lowercase type',
+      colorCode: '#123456',
+      recurrence: 1,
+      recurrenceInterval: 2,
+      recurrenceEndDate: '2024-12-31T23:59:59',
+      userId: 123
+    };
+    
+    const propsWithLowercaseAppointment = {
+      ...mockProps,
+      appointments: [appointmentWithLowercaseProps]
+    };
+    
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true })
+    });
+    
+    render(<Timeline {...propsWithLowercaseAppointment} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:5169/api/appointments/user/1',
+        expect.objectContaining({
+          method: 'PUT',
+          body: expect.stringContaining('"Title":"lowercase title"')
+        })
+      );
+    });
+  });
+
+  test('handles appointments with all uppercase properties', async () => {
+    const appointmentWithUppercaseProps = {
+      id: 1,
+      Title: 'Uppercase Title',
+      startTime: '2024-01-15T09:00:00',
+      endTime: '2024-01-15T10:00:00',
+      Description: 'Uppercase Description',
+      Location: 'Uppercase Location',
+      Type: 'Uppercase Type',
+      ColorCode: '#123456',
+      Recurrence: 1,
+      RecurrenceInterval: 2,
+      RecurrenceEndDate: '2024-12-31T23:59:59',
+      UserId: 123
+    };
+    
+    const propsWithUppercaseAppointment = {
+      ...mockProps,
+      appointments: [appointmentWithUppercaseProps]
+    };
+    
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true })
+    });
+    
+    render(<Timeline {...propsWithUppercaseAppointment} />);
+    
+    const timelineGrid = document.querySelector('.timeline-grid');
+    timelineGrid.getBoundingClientRect = jest.fn(() => ({
+      top: 0,
+      left: 0,
+      width: 400,
+      height: 3840
+    }));
+    
+    Object.defineProperty(timelineGrid, 'scrollTop', {
+      value: 0,
+      writable: true,
+      configurable: true
+    });
+    
+    const mockDataTransfer = {
+      getData: jest.fn().mockReturnValue('1')
+    };
+    
+    await act(async () => {
+      fireEvent.drop(timelineGrid, {
+        clientY: 1600,
+        dataTransfer: mockDataTransfer
+      });
+    });
+    
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:5169/api/appointments/user/1',
+        expect.objectContaining({
+          method: 'PUT',
+          body: expect.stringContaining('"Title":"Uppercase Title"')
+        })
+      );
+    });
+  });
   });
 
   describe('Time Calculations', () => {
