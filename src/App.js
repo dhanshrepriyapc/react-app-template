@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import "./App.scss";
 import Sidebar from "./components/Sidebar";
@@ -32,7 +32,7 @@ function App() {
     Meeting: "#1976d2",
     Personal: "#0a560eff",
     Deadline: "#a80e0eff",
-    "Follow-up": "#646b05ff",
+    "Follow-up": "#858e08ff",
   };
 
   // --- DIGITAL CLOCK UPDATE ---
@@ -169,6 +169,7 @@ function App() {
           case "d": e.preventDefault(); setCurrentView("day"); break;
           case "w": e.preventDefault(); setCurrentView("week"); break;
           case "m": e.preventDefault(); setCurrentView("month"); break;
+          default: break;
         }
       }
     };

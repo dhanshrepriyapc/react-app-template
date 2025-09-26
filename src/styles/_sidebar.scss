@@ -1,3 +1,6 @@
+// Import variables
+@import './variables';
+
 .sidebar {
   flex: 0 0 280px;
   height: 100vh;
@@ -11,7 +14,7 @@
   .sidebar-content {
     display: flex;
     flex-direction: column;
-    height: 100%; 
+    height: 100%;
   }
   
   // NEW: Fixed section that doesn't scroll
@@ -30,8 +33,8 @@
     position: absolute;
     top: 10px;
     left: -15px;
-    background: #1976d2;
-    color: #fff;
+    background: var(--primary-blue);
+    color: var(--bg-white);
     border: none;
     border-radius: 50%;
     width: 28px;
@@ -45,7 +48,7 @@
   }
   
   .sidebar-header {
-    background: #1565c0;
+    background: var(--primary-blue-hover);
     color: white;
     padding: 20px;
     display: flex;
@@ -74,7 +77,7 @@
     margin: 10px 0;
     
     button {
-      background: #1565c0;
+      background: var(--primary-blue-hover);
       color: white;
       border: none;
       border-radius: 4px;
@@ -85,35 +88,35 @@
       margin: 0 12px;
       
       &:hover {
-        background: #303f9f;
+        background: var(--primary-blue-dark);
       }
     }
     
     span.date-label {
       font-weight: 600;
       font-size: 14px;
-      color: #1976d2;
+      color: var(--primary-blue);
       min-width: 100px;
       text-align: center;
     }
   }
   
   .appointment-list {
-    padding: 0 16px 16px; 
+    padding: 0 16px 16px;
     
     h3 {
       margin: 16px 0 8px;
       font-size: 14px;
       font-weight: 600;
-      color: #555;
+      color: var(--text-medium-gray);
     }
     
     .appointment-item {
       margin-bottom: 12px;
       padding: 10px;
-      background: white;
+      background: var(--bg-white);
       border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 1px 3px var(--shadow-appointment);
       
       .time {
         font-size: 12px;
@@ -128,13 +131,13 @@
       
       .description {
         font-size: 12px;
-        color: #777;
+        color: var(--text-gray);
       }
       
       .appt-label {
         display: inline-block;
         margin-top: 4px;
-        background: #e0f0ff;
+        background: var(--bg-legend);
         font-size: 11px;
         padding: 2px 6px;
         border-radius: 4px;
@@ -150,14 +153,14 @@
     p {
       margin: 0;
       font-size: 25px;
-      color: #ffffff;
+      color: var(--bg-white-alt);
       font-weight: 500;
     }
     
     .timezone-text {
       margin: 2px 0 0 0;
       font-size: 13px;
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-white-transparent);
       font-weight: 400;
       opacity: 0.9;
     }
@@ -174,12 +177,12 @@
   .date-label {
     font-weight: 600;
     font-size: 14px;
-    color: #3e0977;
+    color: var(--text-purple);
   }
   
   button {
-    background: #1976d2;
-    color: #fff;
+    background: var(--primary-blue);
+    color: var(--bg-white);
     border: none;
     border-radius: 50%;
     width: 32px;
@@ -197,26 +200,26 @@
     }
     
     &:hover {
-      background: #1565c0;
+      background: var(--primary-blue-hover);
     }
     
     &:active {
-      background: #0d47a1;
+      background: var(--primary-blue-darker);
     }
   }
   
   .date-picker {
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-gray);
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 14px;
-    color: #043566;
+    color: var(--text-blue);
     cursor: pointer;
     
     &:focus {
       outline: none;
-      border-color: #1976d2;
-      box-shadow: 0 0 4px rgba(25, 118, 210, 0.4);
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 4px var(--shadow-blue-focus-light);
     }
   }
 }
@@ -238,7 +241,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.85rem;
-  color: var(--text, #333);
+  color: var(--text, var(--text-dark));
 }
 
 .legend-dot {

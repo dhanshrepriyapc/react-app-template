@@ -1,3 +1,6 @@
+// Import variables
+@import './variables';
+
 .modal,
 .modal-overlay {
   position: fixed;
@@ -12,30 +15,32 @@
 }
 
 .modal-overlay {
-  background: rgba(0,0,0,0.6);
+  background: var(--modal-overlay);
   animation: fadeIn 0.2s ease;
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-white);
   padding: 24px;
   border-radius: 8px;
   width: 400px;
   max-width: 90%;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-
+  box-shadow: 0 4px 20px var(--shadow-modal);
+  
   form {
     display: flex;
     flex-direction: column;
     gap: 16px;
-   .time-label{
-    margin: 8px;
-   }
+    
+    .time-label {
+      margin: 8px;
+    }
+    
     input,
     select {
       padding: 8px 12px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-light-gray);
       border-radius: 4px;
       font-size: 14px;
       margin-right: 10px;
@@ -48,28 +53,28 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 20px;
-
+  
   button {
     padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
     font-weight: 500;
-
+    
     &[type="submit"] {
-      background: #1976d2;
+      background: var(--primary-blue);
       color: white;
       border: none;
     }
-
+    
     &[type="button"] {
-      background: #f5f5f5;
-      border: 1px solid #ddd;
+      background: var(--bg-light-gray);
+      border: 1px solid var(--border-light-gray);
     }
   }
-
+  
   .delete-btn {
     margin-right: auto;
-    background: #dc3545 !important;
+    background: var(--error-red) !important;
     color: white !important;
     border: none !important;
   }

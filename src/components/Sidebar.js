@@ -46,11 +46,6 @@ function Sidebar({
     (a) => isSameDay(a.startTime, selectedDate) && getStatusForUserTimezone(a.startTime) === "upcoming"
   );
 
-  // DEBUG: Add logging to see what appointments are being filtered
-  console.log("All appointments:", appointments);
-  console.log("Selected date:", selectedDate);
-  console.log("Filtered upcoming appointments:", upcomingAppointments);
-
   return (
     <>
       {windowWidth <= 784 && (

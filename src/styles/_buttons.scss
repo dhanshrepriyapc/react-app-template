@@ -1,11 +1,12 @@
-/* ===========================
-   Floating Add Button
-=========================== */
+// Import variables
+@import './variables';
+
+/* ===========================   Floating Add Button=========================== */
 .add-btn {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background: rgb(5,147,5);
+  background: var(--success-green);
   color: white;
   border: none;
   border-radius: 50%;
@@ -17,20 +18,18 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 6px 15px var(--shadow-dark);
   transition: background 0.3s;
   z-index: 1000;
-
+  
   &:hover {
-    background: rgb(4,122,4);
+    background: var(--success-green-hover);
   }
 }
 
-/* ===========================
-   Error Modal
-=========================== */
+/* ===========================   Error Modal=========================== */
 .error-modal {
-  background: white;
+  background: var(--bg-white);
   padding: 24px 32px;
   border-radius: 8px;
   width: 400px;
@@ -44,23 +43,23 @@
   left: 50%;
   transform: translate(-50%, -50%);
   animation: slideIn 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-
+  box-shadow: 0 4px 20px var(--shadow-light);
+  
   h3 {
-    color: #dc3545;
+    color: var(--error-red);
     margin: 0;
     font-size: 22px;
   }
-
+  
   p {
     margin: 0;
-    color: #444;
+    color: var(--text-error);
     line-height: 1.5;
     font-size: 16px;
   }
-
+  
   button {
-    background: #dc3545;
+    background: var(--error-red);
     color: white;
     border: none;
     padding: 10px 24px;
@@ -69,9 +68,9 @@
     font-weight: 500;
     transition: background 0.2s;
     margin-top: 8px;
-
+    
     &:hover {
-      background: #c82333;
+      background: var(--error-red-hover);
     }
   }
 }
