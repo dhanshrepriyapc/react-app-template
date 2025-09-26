@@ -177,21 +177,6 @@ const WebVitalsDisplay = () => {
             </button>
           </div>
 
-          {/* Performance Summary */}
-          <div style={{
-            backgroundColor: '#065F46',
-            border: '1px solid #059669',
-            borderRadius: '8px',
-            padding: '10px',
-            marginBottom: '15px',
-            textAlign: 'center'
-          }}>
-            <div style={{ color: '#10B981', fontWeight: 'bold', fontSize: '14px' }}>
-            </div>
-            <div style={{ color: '#D1FAE5', fontSize: '12px', marginTop: '4px' }}>
-              All metrics are in the green zone
-            </div>
-          </div>
 
           {/* Metrics */}
           {Object.entries(vitals)
